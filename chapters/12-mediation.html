@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 12: 매개 분석</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1>🎓 Causal Inference 학습 가이드</h1>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="chapter-header">
+            <span class="badge advanced">고급 - Chapter 12</span>
+            <h1>매개 분석 (Mediation Analysis)</h1>
+            <p class="lead">인과 메커니즘을 분해하여 직접 효과와 간접 효과를 분리</p>
+        </div>
+
+        <div class="content-section">
+            <h2>🎯 매개 분석이란?</h2>
+            <p>
+                <strong>어떻게(how)</strong> 인과 효과가 발생하는가?<br>
+                X → Y의 총 효과를 X → M → Y (간접)와 X → Y (직접)로 분해
+            </p>
+
+            <div class="simulation-container">
+                <div id="dag-mediation"></div>
+            </div>
+
+            <h3>전통적 접근: Baron & Kenny (1986)</h3>
+            <div class="equation">
+                <p>
+                    Y = α<sub>1</sub> + τX + ε<sub>1</sub><br>
+                    M = α<sub>2</sub> + aX + ε<sub>2</sub><br>
+                    Y = α<sub>3</sub> + τ'X + bM + ε<sub>3</sub>
+                </p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    간접 효과 = a × b<br>
+                    직접 효과 = τ'<br>
+                    총 효과 = τ
+                </p>
+            </div>
+
+            <div class="info-box warning">
+                <h4>⚠️ 전통적 방법의 문제</h4>
+                <ul>
+                    <li>교란 가정이 매우 강함</li>
+                    <li>M-Y 관계가 실험적으로 조작되지 않음</li>
+                    <li>비선형 모델에 일반화 어려움</li>
+                </ul>
+            </div>
+
+            <h3>현대적 접근: 인과 매개 분석</h3>
+            <p>Imai et al. (2010), Pearl (2001)의 잠재적 결과 프레임워크</p>
+
+            <div class="equation">
+                <p><strong>자연 직접 효과 (NDE):</strong></p>
+                <p>E[Y(1, M(0)) - Y(0, M(0))]</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    매개변수를 대조군 수준으로 고정
+                </p>
+            </div>
+
+            <div class="equation">
+                <p><strong>자연 간접 효과 (NIE):</strong></p>
+                <p>E[Y(1, M(1)) - Y(1, M(0))]</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    처치를 1로 고정하고 매개변수만 변화
+                </p>
+            </div>
+
+            <h3>순차적 무지성 가정</h3>
+            <ol>
+                <li>(Y(t,m), M(t)) ⊥ T | X</li>
+                <li>Y(t,m) ⊥ M | T, X</li>
+            </ol>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>from causalinference import CausalModel
+
+# 매개 분석
+model = CausalModel(Y, treatment, mediator, covariates)
+model.est_via_mediation()
+
+print(f"Total Effect: {model.estimates['ate']:.3f}")
+print(f"Direct Effect: {model.estimates['nde']:.3f}")
+print(f"Indirect Effect: {model.estimates['nie']:.3f}")</code></pre>
+            </div>
+
+            <h3>민감도 분석</h3>
+            <p>
+                관찰되지 않은 교란에 대한 강건성 평가
+            </p>
+
+            <h3>대표 연구 사례</h3>
+            <ul>
+                <li>교육 → 소득: 기술이 매개하는가?</li>
+                <li>광고 → 구매: 브랜드 인지도가 매개하는가?</li>
+                <li>치료 → 회복: 특정 바이오마커가 매개하는가?</li>
+            </ul>
+        </div>
+
+        <div class="chapter-nav">
+            <a href="11-synthetic-control.html" class="btn">← Chapter 11</a>
+            <a href="13-sensitivity.html" class="btn btn-success">Chapter 13: 민감도 분석 →</a>
+        </div>
+    </div>
+    <footer><p>&copy; 2024 Causal Inference 학습 가이드</p></footer>
+    <script src="../js/main.js"></script>
+    <script>
+        window.addEventListener('load', () => {
+            const dag = new DAGVisualization('dag-mediation');
+            dag.addNode('X', 'X', 100, 150);
+            dag.addNode('M', 'M', 300, 100);
+            dag.addNode('Y', 'Y', 500, 150);
+            dag.addEdge('X', 'M');
+            dag.addEdge('M', 'Y');
+            dag.addEdge('X', 'Y');
+            dag.draw(600, 250);
+        });
+    </script>
+</body>
+</html>

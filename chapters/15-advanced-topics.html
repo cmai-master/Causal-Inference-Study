@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 15: 고급 주제</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1>🎓 Causal Inference 학습 가이드</h1>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="chapter-header">
+            <span class="badge advanced">고급 - Chapter 15</span>
+            <h1>고급 주제 (Advanced Topics)</h1>
+            <p class="lead">최신 인과추론 방법론과 복잡한 시나리오</p>
+        </div>
+
+        <div class="content-section">
+            <h2>🚀 1. 간섭과 파급효과 (Interference & Spillovers)</h2>
+            <p>
+                SUTVA 위배: 한 개체의 처치가 다른 개체의 결과에 영향
+            </p>
+
+            <h3>네트워크 인과추론</h3>
+            <ul>
+                <li>소셜 네트워크에서의 인과 효과</li>
+                <li>Randomized saturation design</li>
+                <li>네트워크 노출 모델</li>
+            </ul>
+
+            <h3>대표 연구</h3>
+            <p>
+                Pouget-Abadie et al. (2019): Facebook 광고의 네트워크 효과<br>
+                Hudgens & Halloran (2008): 백신의 간접 효과 (herd immunity)
+            </p>
+
+            <h2>🔄 2. 시변 처치 (Time-Varying Treatments)</h2>
+            <p>
+                처치가 시간에 따라 변하는 경우 (예: 약물 복용 이력)
+            </p>
+
+            <h3>Marginal Structural Models (MSM)</h3>
+            <div class="equation">
+                <p>E[Y<sup>ā</sup>] = g(ā; β)</p>
+                <p style="font-size: 0.9rem;">
+                    ā: 처치 이력<br>
+                    IPW로 추정
+                </p>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>from zepid import MarginalStructuralModel
+
+# MSM 추정
+msm = MarginalStructuralModel(df, exposure='treatment', outcome='Y')
+msm.stabilized_weight(df, weight_covariates=['L'])
+msm.fit()</code></pre>
+            </div>
+
+            <h3>G-computation & G-formula</h3>
+            <p>
+                Robins (1986)의 일반화된 방법<br>
+                시변 교란과 처치를 동시에 다룸
+            </p>
+
+            <h2>📊 3. 다중 처치 (Multiple Treatments)</h2>
+            <ul>
+                <li><strong>연속 처치:</strong> Dose-response function</li>
+                <li><strong>범주형 다중 처치:</strong> Generalized PS</li>
+                <li><strong>조합 처치:</strong> Factorial designs</li>
+            </ul>
+
+            <h2>🌍 4. 외삽과 전이 가능성 (Transportability)</h2>
+            <p>
+                한 모집단에서 추정된 효과를 다른 모집단에 적용
+            </p>
+
+            <div class="info-box note">
+                <h4>💡 Pearl의 전이 가능성 이론</h4>
+                <p>
+                    S-admissibility: 어떤 변수를 조정해야 효과를 전이할 수 있는가?
+                </p>
+            </div>
+
+            <h2>🔬 5. 베이지안 인과추론</h2>
+            <ul>
+                <li>Bayesian Causal Forests</li>
+                <li>Posterior predictive checks</li>
+                <li>사전 정보 통합</li>
+            </ul>
+
+            <h2>🧬 6. 인과 발견 (Causal Discovery)</h2>
+            <p>
+                데이터로부터 인과 구조 학습
+            </p>
+
+            <ul>
+                <li><strong>PC 알고리즘:</strong> 제약 기반</li>
+                <li><strong>GES:</strong> 점수 기반</li>
+                <li><strong>LiNGAM:</strong> 선형 비가우시안 모델</li>
+            </ul>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>from causal-learn import pc
+
+# PC 알고리즘으로 인과 그래프 학습
+cg = pc(data, alpha=0.05)
+cg.draw_pydot_graph()</code></pre>
+            </div>
+
+            <h2>💊 7. Personalized Treatment Rules</h2>
+            <p>
+                개인의 특성에 따른 최적 처치 결정
+            </p>
+
+            <ul>
+                <li>Optimal Dynamic Treatment Regimes (ODTR)</li>
+                <li>Q-learning</li>
+                <li>Policy learning</li>
+            </ul>
+
+            <h2>🔮 8. 반사실 예측 (Counterfactual Prediction)</h2>
+            <p>
+                관찰된 개체에 대해 "만약 다른 처치를 받았다면?" 예측
+            </p>
+
+            <ul>
+                <li>Individual Treatment Effect (ITE) 추정</li>
+                <li>Counterfactual Regression</li>
+                <li>Fair prediction with counterfactuals</li>
+            </ul>
+
+            <h2>📚 최신 연구 동향</h2>
+            <div class="card-grid">
+                <div class="card">
+                    <h4>🤖 Deep Learning</h4>
+                    <ul style="font-size: 0.9rem;">
+                        <li>Causal Effect VAE</li>
+                        <li>DragonNet</li>
+                        <li>Treatment-agnostic representation</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h4>🌐 텍스트와 이미지</h4>
+                    <ul style="font-size: 0.9rem;">
+                        <li>Text-based confounders</li>
+                        <li>Causal inference with images</li>
+                        <li>Multimodal causal models</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h4>⚖️ 공정성</h4>
+                    <ul style="font-size: 0.9rem;">
+                        <li>Causal fairness</li>
+                        <li>Path-specific effects</li>
+                        <li>Fairness without demographics</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2>🎓 전체 과정 완료!</h2>
+            <div class="info-box tip">
+                <h4>✅ 축하합니다!</h4>
+                <p>
+                    인과추론의 입문부터 최신 연구까지 전 과정을 학습하셨습니다.
+                    이제 실제 연구와 프로젝트에 이 방법론들을 적용해보세요!
+                </p>
+                <ul>
+                    <li>실제 데이터로 프로젝트 수행</li>
+                    <li>최신 논문 읽기</li>
+                    <li>커뮤니티 참여 (r/CausalInference, conferences)</li>
+                    <li>오픈소스 기여</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="chapter-nav">
+            <a href="14-ml-causal.html" class="btn">← Chapter 14</a>
+            <a href="../index.html" class="btn btn-success">홈으로 →</a>
+        </div>
+    </div>
+    <footer><p>&copy; 2024 Causal Inference 학습 가이드</p></footer>
+    <script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 9: 회귀 불연속 설계</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1>🎓 Causal Inference 학습 가이드</h1>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="chapter-header">
+            <span class="badge intermediate">중급 - Chapter 9</span>
+            <h1>회귀 불연속 설계 (Regression Discontinuity Design)</h1>
+            <p class="lead">임계값 기반 처치 배정의 불연속성을 활용한 준실험 설계</p>
+        </div>
+
+        <div class="content-section">
+            <h2>🎯 RDD의 핵심 아이디어</h2>
+            <p>
+                처치 배정이 연속 변수(running variable)의 임계값(cutoff)에 의해 결정될 때,
+                임계값 근처에서 처치군과 대조군은 유사합니다 (국소 무작위화).
+            </p>
+
+            <h3>Sharp RDD vs Fuzzy RDD</h3>
+            <div class="card-grid">
+                <div class="card">
+                    <h4>Sharp RDD</h4>
+                    <p>임계값에서 처치 확률이 0에서 1로 점프</p>
+                    <div class="equation">
+                        T = 1{X ≥ c}
+                    </div>
+                </div>
+                <div class="card">
+                    <h4>Fuzzy RDD</h4>
+                    <p>임계값에서 처치 확률이 불연속적으로 변화</p>
+                    <div class="equation">
+                        P(T=1|X) 불연속
+                    </div>
+                </div>
+            </div>
+
+            <h3>타당성 가정</h3>
+            <ul>
+                <li><strong>연속성:</strong> 잠재적 결과가 임계값에서 연속</li>
+                <li><strong>조작 불가:</strong> Running variable 조작 없음</li>
+                <li><strong>국소성:</strong> 임계값 근처에서만 유효</li>
+            </ul>
+
+            <h3>추정 방법</h3>
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>from rdd import rdd
+
+# Sharp RDD
+result = rdd.truncated_linear_rdd(
+    data['Y'],
+    data['running_var'],
+    cutoff=0,
+    bandwidth='optimal'
+)
+
+print(f"Treatment Effect: {result.est[0]:.3f}")
+print(f"SE: {result.se[0]:.3f}")</code></pre>
+            </div>
+
+            <h3>대표 연구: Lee et al. (2008) - 현직 효과</h3>
+            <p>
+                선거에서 간신히 이긴 후보 vs 간신히 진 후보<br>
+                Running variable: 득표율 차이<br>
+                Cutoff: 0%<br>
+                결과: 현직 의원의 재선 확률 증가
+            </p>
+        </div>
+
+        <div class="chapter-nav">
+            <a href="08-instrumental-variables.html" class="btn">← Chapter 8</a>
+            <a href="10-did.html" class="btn btn-success">Chapter 10: 이중차분법 →</a>
+        </div>
+    </div>
+    <footer><p>&copy; 2024 Causal Inference 학습 가이드</p></footer>
+    <script src="../js/main.js"></script>
+</body>
+</html>

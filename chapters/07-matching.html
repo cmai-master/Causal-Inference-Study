@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 7: 매칭 방법론</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1>🎓 Causal Inference 학습 가이드</h1>
+            <ul class="nav-links">
+                <li><a href="../index.html">홈</a></li>
+                <li><a href="#content">학습내용</a></li>
+                <li><a href="#theory">이론</a></li>
+                <li><a href="#implementation">구현</a></li>
+                <li><a href="#interactive">실습</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="chapter-header">
+            <span class="badge intermediate">중급 - Chapter 7</span>
+            <h1>매칭 방법론 (Matching Methods)</h1>
+            <p class="lead">관찰 연구에서 처치군과 대조군의 비교 가능성을 높이는 다양한 매칭 기법의 이론과 실제</p>
+
+            <div class="chapter-nav">
+                <a href="06-propensity-score.html" class="btn">← 이전 챕터</a>
+                <a href="08-instrumental-variables.html" class="btn btn-success">다음 챕터 →</a>
+            </div>
+        </div>
+
+        <div class="content-section" id="content">
+            <h2>📖 학습 목표</h2>
+            <ul>
+                <li>매칭의 이론적 기초와 식별 가정 이해</li>
+                <li>다양한 매칭 알고리즘의 작동 원리와 장단점</li>
+                <li>매칭 품질 평가 및 진단 방법</li>
+                <li>고급 매칭 기법 (Genetic Matching, CEM, Optimal Matching)</li>
+                <li>매칭 후 분석과 분산 추정</li>
+            </ul>
+        </div>
+
+        <div class="content-section" id="theory">
+            <h2>🎓 이론적 기초</h2>
+
+            <h3>1. 매칭의 핵심 아이디어</h3>
+
+            <p>
+                매칭(Matching)은 관찰 연구를 준실험(quasi-experiment)으로 변환하는 전처리 방법입니다.
+                공변량이 유사한 처치군과 대조군 개체를 짝지어 <strong>counterfactual comparison</strong>을 근사합니다.
+            </p>
+
+            <div class="info-box note">
+                <h4>💡 근본 원리</h4>
+                <p><strong>Matching Principle (Rubin, 1973):</strong></p>
+                <p>
+                    공변량 X가 동일한 개체들 사이에서는 처치 배정이 무작위적인 것처럼 작동합니다.
+                    따라서 X를 매칭하면 X로 인한 교란을 제거할 수 있습니다.
+                </p>
+            </div>
+
+            <div class="equation">
+                <p><strong>조건부 독립 가정 (CIA):</strong></p>
+                <p>(Y(0), Y(1)) ⊥ T | X</p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    주어진 X에 대해, 잠재적 결과가 처치 배정과 독립<br>
+                    = Unconfoundedness (Rosenbaum & Rubin, 1983)<br>
+                    = Selection on Observables<br>
+                    = Ignorability (Rubin, 1978)
+                </p>
+            </div>
+
+            <h3>2. 식별 가정 (Identification Assumptions)</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>Assumption 1: Unconfoundedness</h4>
+                    <div class="equation">
+                        (Y(0), Y(1)) ⊥ T | X
+                    </div>
+                    <p>관찰된 공변량으로 조건화하면 처치 배정이 외생적</p>
+                </div>
+
+                <div class="card">
+                    <h4>Assumption 2: Common Support</h4>
+                    <div class="equation">
+                        0 < P(T=1|X) < 1
+                    </div>
+                    <p>모든 공변량 값에 대해 처치/대조군 모두 존재</p>
+                </div>
+
+                <div class="card">
+                    <h4>Assumption 3: SUTVA</h4>
+                    <div class="equation">
+                        Y<sub>i</sub> = T<sub>i</sub>Y<sub>i</sub>(1) + (1-T<sub>i</sub>)Y<sub>i</sub>(0)
+                    </div>
+                    <p>간섭 없음, 처치 버전의 일관성</p>
+                </div>
+            </div>
+
+            <div class="info-box warning">
+                <h4>⚠️ Unconfoundedness의 강한 가정</h4>
+                <p>
+                    이 가정은 검증 불가능(untestable)합니다. 관찰되지 않은 교란이 없다는 것을
+                    데이터만으로는 확인할 수 없기 때문입니다. 따라서:
+                </p>
+                <ul>
+                    <li>가능한 모든 관련 공변량 포함</li>
+                    <li>도메인 지식 활용</li>
+                    <li>민감도 분석 수행</li>
+                    <li>실험 결과와 비교 (가능한 경우)</li>
+                </ul>
+            </div>
+
+            <h3>3. 매칭 추정량의 형식화</h3>
+
+            <div class="equation">
+                <p><strong>ATT 추정량 (일반형):</strong></p>
+                <p>
+                    τ̂<sub>ATT</sub> = (1/n<sub>1</sub>) Σ<sub>i:T<sub>i</sub>=1</sub> [Y<sub>i</sub> - Σ<sub>j∈M(i)</sub> w<sub>ij</sub> Y<sub>j</sub>]
+                </p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    M(i): 개체 i와 매칭된 대조군 집합<br>
+                    w<sub>ij</sub>: 매칭 가중치 (Σw<sub>ij</sub> = 1)
+                </p>
+            </div>
+
+            <h3>4. 매칭 vs 회귀 조정</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>특성</th>
+                        <th>매칭</th>
+                        <th>회귀 조정</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>접근 방식</td>
+                        <td>비모수적 (nonparametric)</td>
+                        <td>모수적 (parametric)</td>
+                    </tr>
+                    <tr>
+                        <td>함수형 가정</td>
+                        <td>불필요</td>
+                        <td>필요 (선형성 등)</td>
+                    </tr>
+                    <tr>
+                        <td>Common support</td>
+                        <td>명시적으로 강제</td>
+                        <td>외삽(extrapolation) 위험</td>
+                    </tr>
+                    <tr>
+                        <td>균형 진단</td>
+                        <td>직접적</td>
+                        <td>간접적</td>
+                    </tr>
+                    <tr>
+                        <td>효율성</td>
+                        <td>낮을 수 있음</td>
+                        <td>높음 (올바른 명시 시)</td>
+                    </tr>
+                    <tr>
+                        <td>강건성</td>
+                        <td>높음</td>
+                        <td>모델 오명시에 취약</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="content-section">
+            <h2>🔧 매칭 알고리즘</h2>
+
+            <h3>1. Exact Matching (정확 매칭)</h3>
+
+            <p>
+                공변량이 <strong>완전히 동일한</strong> 개체들만 매칭합니다.
+            </p>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>from causalinference import CausalModel
+
+# Exact matching
+cm = CausalModel(Y, T, X)
+cm.est_via_matching(matches=1, bias_adj=False)
+
+# 결과 확인
+print(cm.estimates)</code></pre>
+            </div>
+
+            <div class="info-box tip">
+                <h4>✅ 장점</h4>
+                <ul>
+                    <li>완벽한 균형 달성</li>
+                    <li>구현이 간단</li>
+                    <li>해석이 명확</li>
+                </ul>
+                <h4>❌ 단점</h4>
+                <ul>
+                    <li>고차원에서 매칭 불가 (차원의 저주)</li>
+                    <li>연속형 변수에 부적합</li>
+                    <li>많은 개체가 매칭되지 않음</li>
+                </ul>
+            </div>
+
+            <h3>2. Nearest Neighbor Matching (최근접 이웃 매칭)</h3>
+
+            <p>
+                거리 측도 d(X<sub>i</sub>, X<sub>j</sub>)를 정의하고, 가장 가까운 개체를 매칭합니다.
+            </p>
+
+            <div class="equation">
+                <p><strong>매칭 함수:</strong></p>
+                <p>M(i) = argmin<sub>j:T<sub>j</sub>≠T<sub>i</sub></sub> d(X<sub>i</sub>, X<sub>j</sub>)</p>
+            </div>
+
+            <h4>거리 측도 선택</h4>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>Euclidean Distance</h4>
+                    <div class="equation">
+                        d(X<sub>i</sub>, X<sub>j</sub>) = √(Σ(X<sub>ik</sub> - X<sub>jk</sub>)²)
+                    </div>
+                    <p style="font-size: 0.9rem;">스케일에 민감 → 표준화 필요</p>
+                </div>
+
+                <div class="card">
+                    <h4>Mahalanobis Distance</h4>
+                    <div class="equation">
+                        d(X<sub>i</sub>, X<sub>j</sub>) = √((X<sub>i</sub>-X<sub>j</sub>)'Σ<sup>-1</sup>(X<sub>i</sub>-X<sub>j</sub>))
+                    </div>
+                    <p style="font-size: 0.9rem;">공변량 간 상관관계 고려</p>
+                </div>
+
+                <div class="card">
+                    <h4>Propensity Score Distance</h4>
+                    <div class="equation">
+                        d(X<sub>i</sub>, X<sub>j</sub>) = |e(X<sub>i</sub>) - e(X<sub>j</sub>)|
+                    </div>
+                    <p style="font-size: 0.9rem;">차원 축소 + 균형화</p>
+                </div>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>from sklearn.neighbors import NearestNeighbors
+
+# 1:1 Nearest Neighbor Matching
+def nn_matching(X_treated, X_control, Y_treated, Y_control, k=1):
+    # NearestNeighbors 모델
+    nbrs = NearestNeighbors(n_neighbors=k, metric='mahalanobis',
+                           metric_params={'V': np.cov(X_control.T)})
+    nbrs.fit(X_control)
+
+    # 각 처치 개체에 대한 최근접 이웃 찾기
+    distances, indices = nbrs.kneighbors(X_treated)
+
+    # ATT 추정
+    matched_control = Y_control[indices].mean(axis=1)
+    att = (Y_treated - matched_control).mean()
+
+    return att, indices</code></pre>
+            </div>
+
+            <h4>변형: K:1 Matching with Replacement</h4>
+
+            <ul>
+                <li><strong>K:1 Matching:</strong> 각 처치 개체에 K개의 대조군 매칭
+                    <ul>
+                        <li>장점: 분산 감소</li>
+                        <li>단점: 편향 증가 (더 먼 개체 포함)</li>
+                    </ul>
+                </li>
+                <li><strong>With Replacement:</strong> 같은 대조군을 여러 번 사용 가능
+                    <ul>
+                        <li>장점: 매칭 품질 향상</li>
+                        <li>단점: 분산 추정 복잡</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h3>3. Caliper Matching (캘리퍼 매칭)</h3>
+
+            <p>
+                최대 허용 거리(caliper) ε 내의 개체만 매칭합니다.
+            </p>
+
+            <div class="equation">
+                <p>M(i) = {j : T<sub>j</sub>≠T<sub>i</sub> and d(X<sub>i</sub>, X<sub>j</sub>) < ε}</p>
+            </div>
+
+            <div class="info-box note">
+                <h4>💡 Caliper 선택 규칙 (Rosenbaum & Rubin, 1985)</h4>
+                <p>
+                    <strong>성향 점수 매칭의 경우:</strong> ε = 0.25 × SD(logit(e(X)))<br>
+                    이는 약 0.2 × SD(e(X))와 동일
+                </p>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(MatchIt)
+
+# Caliper matching
+m.out <- matchit(treatment ~ age + education + income,
+                 data = mydata,
+                 method = "nearest",
+                 distance = "logit",
+                 caliper = 0.25)</code></pre>
+            </div>
+
+            <h3>4. Coarsened Exact Matching (CEM)</h3>
+
+            <p>
+                Iacus, King & Porro (2012)가 제안한 방법으로, 연속형 변수를 구간으로 나눈 후
+                exact matching을 수행합니다.
+            </p>
+
+            <div class="info-box tip">
+                <h4>✅ CEM의 장점</h4>
+                <ul>
+                    <li><strong>Monotonic Imbalance Bounding (MIB):</strong> 거친 분할(coarsening)이 증가하면 불균형이 단조 감소</li>
+                    <li>사전 분석 없이 균형 달성</li>
+                    <li>모델 의존성 감소</li>
+                    <li>Common support 자동 제한</li>
+                </ul>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(cem)
+
+# Coarsened Exact Matching
+mat <- cem(treatment = "treat",
+           data = mydata,
+           drop = "outcome",
+           cutpoints = list(age = c(25, 40, 60),
+                           income = "sturges"))
+
+# ATT 추정
+att(mat, outcome ~ treat, data = mydata)</code></pre>
+            </div>
+
+            <h3>5. Genetic Matching</h3>
+
+            <p>
+                Diamond & Sekhon (2013)의 방법으로, 유전 알고리즘을 사용하여 최적의 가중치 행렬을
+                자동으로 찾아 균형을 극대화합니다.
+            </p>
+
+            <div class="equation">
+                <p><strong>일반화된 Mahalanobis 거리:</strong></p>
+                <p>d(X<sub>i</sub>, X<sub>j</sub>) = √((X<sub>i</sub>-X<sub>j</sub>)'W(X<sub>i</sub>-X<sub>j</sub>))</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    W는 유전 알고리즘으로 최적화
+                </p>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(Matching)
+
+# Genetic Matching
+genout <- GenMatch(Tr = treatment, X = X,
+                   pop.size = 1000,
+                   max.generations = 100,
+                   print.level = 0)
+
+mout <- Match(Y = outcome, Tr = treatment, X = X,
+              Weight.matrix = genout)</code></pre>
+            </div>
+
+            <h3>6. Optimal Matching</h3>
+
+            <p>
+                전역 최소 거리(global minimum distance)를 달성하는 매칭을 찾습니다.
+                Network flow 알고리즘 사용.
+            </p>
+
+            <div class="info-box note">
+                <h4>💡 Greedy vs Optimal</h4>
+                <ul>
+                    <li><strong>Greedy (NN):</strong> 각 단계에서 최선 선택 → 빠름, 지역 최적</li>
+                    <li><strong>Optimal:</strong> 전역 최소화 → 느림, 전역 최적</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📊 균형 진단 (Balance Diagnostics)</h2>
+
+            <p>
+                매칭의 성공은 처치 효과 추정이 아닌 <strong>공변량 균형</strong>으로 평가합니다.
+            </p>
+
+            <h3>1. Standardized Mean Difference (SMD)</h3>
+
+            <div class="equation">
+                <p>
+                    SMD = (X̄<sub>treated</sub> - X̄<sub>control</sub>) / √((s²<sub>treated</sub> + s²<sub>control</sub>)/2)
+                </p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    <strong>기준:</strong> |SMD| < 0.1 (엄격), < 0.25 (일반적)
+                </p>
+            </div>
+
+            <h3>2. Variance Ratio</h3>
+
+            <div class="equation">
+                <p>VR = s²<sub>treated</sub> / s²<sub>control</sub></p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    <strong>기준:</strong> 0.5 < VR < 2.0
+                </p>
+            </div>
+
+            <h3>3. Love Plot</h3>
+
+            <p>매칭 전후의 모든 공변량 SMD를 시각화</p>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>import matplotlib.pyplot as plt
+
+def plot_love(covariates, treated, control,
+              treated_matched, control_matched):
+    # 매칭 전후 SMD 계산
+    smd_before = []
+    smd_after = []
+
+    for cov in covariates:
+        # Before matching
+        mean_diff = treated[cov].mean() - control[cov].mean()
+        pooled_sd = np.sqrt((treated[cov].var() + control[cov].var()) / 2)
+        smd_before.append(mean_diff / pooled_sd)
+
+        # After matching
+        mean_diff = treated_matched[cov].mean() - control_matched[cov].mean()
+        pooled_sd = np.sqrt((treated_matched[cov].var() +
+                            control_matched[cov].var()) / 2)
+        smd_after.append(mean_diff / pooled_sd)
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    y_pos = range(len(covariates))
+
+    ax.scatter(smd_before, y_pos, label='Before', marker='o', s=100)
+    ax.scatter(smd_after, y_pos, label='After', marker='x', s=100)
+    ax.axvline(x=0, color='black', linestyle='-', linewidth=0.5)
+    ax.axvline(x=-0.1, color='red', linestyle='--', linewidth=0.5)
+    ax.axvline(x=0.1, color='red', linestyle='--', linewidth=0.5)
+
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(covariates)
+    ax.set_xlabel('Standardized Mean Difference')
+    ax.set_title('Love Plot: Covariate Balance')
+    ax.legend()
+
+    plt.tight_layout()
+    plt.show()</code></pre>
+            </div>
+
+            <h3>4. Propensity Score Overlap</h3>
+
+            <p>처치군과 대조군의 성향 점수 분포가 겹치는지 확인</p>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>import seaborn as sns
+
+# PS overlap plot
+plt.figure(figsize=(10, 6))
+sns.kdeplot(data=ps[treatment==1], label='Treated', shade=True, alpha=0.5)
+sns.kdeplot(data=ps[treatment==0], label='Control', shade=True, alpha=0.5)
+plt.xlabel('Propensity Score')
+plt.ylabel('Density')
+plt.title('Propensity Score Distribution')
+plt.legend()
+plt.show()</code></pre>
+            </div>
+        </div>
+
+        <div class="content-section" id="implementation">
+            <h2>💻 실전 구현</h2>
+
+            <h3>완전한 매칭 파이프라인 (Python)</h3>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>import pandas as pd
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import NearestNeighbors
+from scipy import stats
+
+class MatchingEstimator:
+    def __init__(self, method='nearest', k=1, caliper=None,
+                 replacement=False):
+        self.method = method
+        self.k = k
+        self.caliper = caliper
+        self.replacement = replacement
+        self.matches = None
+
+    def fit(self, X, treatment, outcome):
+        """매칭 수행"""
+        self.X = X
+        self.treatment = treatment
+        self.outcome = outcome
+
+        # 성향 점수 추정
+        ps_model = LogisticRegression(max_iter=1000)
+        ps_model.fit(X, treatment)
+        self.ps = ps_model.predict_proba(X)[:, 1]
+
+        # 매칭
+        if self.method == 'nearest':
+            self._nearest_neighbor_matching()
+        elif self.method == 'optimal':
+            self._optimal_matching()
+        elif self.method == 'genetic':
+            self._genetic_matching()
+
+        return self
+
+    def _nearest_neighbor_matching(self):
+        """최근접 이웃 매칭"""
+        treated_idx = np.where(self.treatment == 1)[0]
+        control_idx = np.where(self.treatment == 0)[0]
+
+        # NearestNeighbors 모델
+        if self.caliper:
+            radius = self.caliper
+        else:
+            radius = np.inf
+
+        nbrs = NearestNeighbors(n_neighbors=self.k,
+                               metric='euclidean',
+                               radius=radius)
+        nbrs.fit(self.ps[control_idx].reshape(-1, 1))
+
+        # 매칭
+        distances, indices = nbrs.kneighbors(
+            self.ps[treated_idx].reshape(-1, 1)
+        )
+
+        # Caliper 적용
+        if self.caliper:
+            valid = distances[:, 0] <= self.caliper
+            treated_idx = treated_idx[valid]
+            indices = indices[valid]
+
+        self.matches = {
+            'treated': treated_idx,
+            'control': control_idx[indices]
+        }
+
+    def estimate_att(self):
+        """ATT 추정"""
+        treated_idx = self.matches['treated']
+        control_idx = self.matches['control']
+
+        Y_treated = self.outcome[treated_idx]
+        Y_control = self.outcome[control_idx].mean(axis=1)
+
+        att = (Y_treated - Y_control).mean()
+        se = (Y_treated - Y_control).std() / np.sqrt(len(Y_treated))
+
+        return {
+            'ATT': att,
+            'SE': se,
+            'CI_lower': att - 1.96 * se,
+            'CI_upper': att + 1.96 * se,
+            'n_matched': len(treated_idx)
+        }
+
+    def balance_diagnostics(self):
+        """균형 진단"""
+        treated_idx = self.matches['treated']
+        control_idx = self.matches['control'].flatten()
+
+        balance = {}
+        for i, col in enumerate(self.X.T):
+            # Before matching
+            smd_before = self._compute_smd(
+                col[self.treatment == 1],
+                col[self.treatment == 0]
+            )
+
+            # After matching
+            smd_after = self._compute_smd(
+                col[treated_idx],
+                col[control_idx]
+            )
+
+            balance[f'X{i}'] = {
+                'SMD_before': smd_before,
+                'SMD_after': smd_after,
+                'improvement': abs(smd_before) - abs(smd_after)
+            }
+
+        return pd.DataFrame(balance).T
+
+    def _compute_smd(self, x1, x2):
+        """표준화 평균 차이 계산"""
+        mean_diff = x1.mean() - x2.mean()
+        pooled_std = np.sqrt((x1.var() + x2.var()) / 2)
+        return mean_diff / pooled_std if pooled_std > 0 else 0
+
+
+# 사용 예시
+estimator = MatchingEstimator(method='nearest', k=1,
+                              caliper=0.1, replacement=False)
+estimator.fit(X, treatment, outcome)
+
+# ATT 추정
+results = estimator.estimate_att()
+print(f"ATT: {results['ATT']:.3f} (SE: {results['SE']:.3f})")
+print(f"95% CI: [{results['CI_lower']:.3f}, {results['CI_upper']:.3f}]")
+
+# 균형 진단
+balance = estimator.balance_diagnostics()
+print("\n균형 진단:")
+print(balance)</code></pre>
+            </div>
+        </div>
+
+        <div class="content-section" id="interactive">
+            <h3>🔬 Interactive 시뮬레이션</h3>
+
+            <div class="interactive-box">
+                <h3>매칭 알고리즘 비교</h3>
+                <div class="simulation-container">
+                    <div class="controls">
+                        <div class="control-group">
+                            <label for="matching-method">매칭 방법:</label>
+                            <select id="matching-method" onchange="runMatchingComparison()">
+                                <option value="nearest">Nearest Neighbor</option>
+                                <option value="caliper">With Caliper</option>
+                                <option value="optimal">Optimal</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="confounding-level">교란 강도: <span id="conf-level-val">0.7</span></label>
+                            <input type="range" id="confounding-level" min="0" max="1" step="0.1" value="0.7">
+                        </div>
+                        <div class="control-group">
+                            <button class="btn" onclick="runMatchingComparison()">시뮬레이션 실행</button>
+                        </div>
+                    </div>
+
+                    <div id="matching-viz"></div>
+                    <div class="output-display" id="matching-results"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 고급 주제</h2>
+
+            <h3>1. 분산 추정 (Variance Estimation)</h3>
+
+            <div class="info-box warning">
+                <h4>⚠️ 복잡한 문제</h4>
+                <p>
+                    매칭 후 단순 분산 공식은 부정확합니다. 왜냐하면:
+                </p>
+                <ul>
+                    <li>매칭이 데이터 의존적 (data-dependent)</li>
+                    <li>With replacement 시 관측치 재사용</li>
+                    <li>성향 점수 추정의 불확실성</li>
+                </ul>
+            </div>
+
+            <h4>해결 방법</h4>
+
+            <ul>
+                <li><strong>Abadie-Imbens (2006) 표준오차:</strong> 매칭 불확실성 고려</li>
+                <li><strong>Bootstrap:</strong> 전체 과정(성향 점수 추정 + 매칭) 반복</li>
+                <li><strong>Subclassification:</strong> 층화 후 분산 계산</li>
+            </ul>
+
+            <h3>2. 매칭 후 회귀 조정</h3>
+
+            <p>
+                잔여 불균형을 제거하고 효율성을 높이기 위해 매칭 후 회귀 조정을 수행할 수 있습니다.
+            </p>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>from sklearn.linear_model import LinearRegression
+
+# 매칭 후 회귀 조정
+matched_data = data.iloc[matched_indices]
+model = LinearRegression()
+model.fit(
+    matched_data[['treatment'] + covariates],
+    matched_data['outcome']
+)
+
+# 조정된 ATT
+att_adjusted = model.coef_[0]</code></pre>
+            </div>
+
+            <h3>3. 다중 처치 (Multiple Treatments)</h3>
+
+            <p>
+                처치가 2개 이상일 때:
+            </p>
+
+            <ul>
+                <li>Pairwise matching: 각 처치 쌍에 대해 매칭</li>
+                <li>Generalized propensity score: 다항 로지스틱 회귀</li>
+                <li>Matching on generalized PS</li>
+            </ul>
+
+            <h3>4. 실제 연구 사례</h3>
+
+            <div class="card">
+                <h4>Dehejia & Wahba (1999): NSW Job Training</h4>
+                <p>
+                    <strong>연구 질문:</strong> 직업 훈련 프로그램이 수입에 미치는 영향<br>
+                    <strong>방법:</strong> PS matching with CPS comparison group<br>
+                    <strong>결과:</strong> ATT ≈ $1,794 (실험 결과와 유사)<br>
+                    <strong>교훈:</strong> 신중한 매칭으로 관찰 연구가 실험 결과 재현 가능
+                </p>
+            </div>
+
+            <div class="card">
+                <h4>Rosenbaum (2002): Smoking and Health</h4>
+                <p>
+                    <strong>연구 질문:</strong> 흡연이 건강에 미치는 영향<br>
+                    <strong>방법:</strong> Optimal matching + sensitivity analysis<br>
+                    <strong>결과:</strong> 강한 인과 증거, 관찰되지 않은 교란에도 강건<br>
+                    <strong>교훈:</strong> 민감도 분석의 중요성
+                </p>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>✅ 실전 체크리스트</h2>
+
+            <div class="info-box tip">
+                <h4>매칭 분석 단계</h4>
+                <ol>
+                    <li>□ 모든 관련 공변량 포함 확인</li>
+                    <li>□ Common support 확인 (PS 분포 겹침)</li>
+                    <li>□ 적절한 매칭 알고리즘 선택</li>
+                    <li>□ 매칭 수행</li>
+                    <li>□ 균형 진단 (SMD, variance ratio, Love plot)</li>
+                    <li>□ 불균형 시 재매칭 또는 회귀 조정</li>
+                    <li>□ ATT/ATE 추정</li>
+                    <li>□ 적절한 표준오차 계산</li>
+                    <li>□ 민감도 분석</li>
+                    <li>□ 결과 해석 및 보고</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📖 참고문헌</h2>
+
+            <ul style="line-height: 2;">
+                <li>Abadie, A., & Imbens, G. W. (2006). Large sample properties of matching estimators for average treatment effects. <em>Econometrica</em>, 74(1), 235-267.</li>
+                <li>Diamond, A., & Sekhon, J. S. (2013). Genetic matching for estimating causal effects. <em>Review of Economics and Statistics</em>, 95(3), 932-945.</li>
+                <li>Iacus, S. M., King, G., & Porro, G. (2012). Causal inference without balance checking: Coarsened exact matching. <em>Political Analysis</em>, 20(1), 1-24.</li>
+                <li>Rosenbaum, P. R., & Rubin, D. B. (1983). The central role of the propensity score in observational studies for causal effects. <em>Biometrika</em>, 70(1), 41-55.</li>
+                <li>Rosenbaum, P. R., & Rubin, D. B. (1985). Constructing a control group using multivariate matched sampling methods. <em>The American Statistician</em>, 39(1), 33-38.</li>
+                <li>Stuart, E. A. (2010). Matching methods for causal inference: A review and a look forward. <em>Statistical Science</em>, 25(1), 1-21.</li>
+            </ul>
+        </div>
+
+        <div class="chapter-nav">
+            <a href="06-propensity-score.html" class="btn">← Chapter 6</a>
+            <a href="08-instrumental-variables.html" class="btn btn-success">Chapter 8: 도구 변수 →</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Causal Inference 학습 가이드</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script>
+        // Matching comparison simulation
+        function runMatchingComparison() {
+            const method = document.getElementById('matching-method').value;
+            const confLevel = parseFloat(document.getElementById('confounding-level').value);
+
+            // Generate data with confounding
+            const n = 200;
+            const data = [];
+
+            for (let i = 0; i < n; i++) {
+                const x = Math.random();
+                const ps = 0.2 + confLevel * x;
+                const treatment = Math.random() < ps ? 1 : 0;
+                const y0 = 50 + 30 * x + Math.random() * 10;
+                const y1 = y0 + 15;
+                const outcome = treatment ? y1 : y0;
+
+                data.push({ x, ps, treatment, outcome, y0, y1 });
+            }
+
+            // Perform matching
+            let matchedData;
+            if (method === 'nearest') {
+                matchedData = nearestNeighborMatch(data);
+            } else if (method === 'caliper') {
+                matchedData = caliperMatch(data, 0.1);
+            } else {
+                matchedData = optimalMatch(data);
+            }
+
+            // Calculate ATT
+            const treated = matchedData.filter(d => d.treatment === 1);
+            const control = matchedData.filter(d => d.treatment === 0);
+
+            const attEstimate = treated.reduce((sum, d) => sum + d.outcome, 0) / treated.length -
+                               control.reduce((sum, d) => sum + d.outcome, 0) / control.length;
+
+            // Check balance
+            const xTreated = treated.reduce((sum, d) => sum + d.x, 0) / treated.length;
+            const xControl = control.reduce((sum, d) => sum + d.x, 0) / control.length;
+            const smd = Math.abs(xTreated - xControl) /
+                       Math.sqrt((variance(treated.map(d => d.x)) + variance(control.map(d => d.x))) / 2);
+
+            // Visualize
+            visualizeMatching(matchedData, method);
+
+            // Display results
+            const resultsHTML = `
+                <h4>매칭 결과</h4>
+                <strong>방법:</strong> ${method}<br>
+                <strong>매칭된 쌍:</strong> ${Math.min(treated.length, control.length)}<br>
+                <strong>ATT 추정값:</strong> ${attEstimate.toFixed(2)} (실제: 15.0)<br>
+                <strong>추정 오차:</strong> ${Math.abs(attEstimate - 15).toFixed(2)}<br><br>
+
+                <strong>공변량 균형 (SMD):</strong> ${smd.toFixed(3)}<br>
+                ${smd < 0.1 ? '<span style="color: #27ae60;">✓ 우수한 균형</span>' :
+                  smd < 0.25 ? '<span style="color: #f39c12;">⚠️ 적절한 균형</span>' :
+                  '<span style="color: #e74c3c;">✗ 불량한 균형</span>'}
+            `;
+
+            document.getElementById('matching-results').innerHTML = resultsHTML;
+        }
+
+        function nearestNeighborMatch(data) {
+            const treated = data.filter(d => d.treatment === 1);
+            const control = data.filter(d => d.treatment === 0);
+
+            const matched = [...treated];
+
+            treated.forEach(t => {
+                let minDist = Infinity;
+                let bestMatch = null;
+
+                control.forEach(c => {
+                    const dist = Math.abs(t.ps - c.ps);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        bestMatch = c;
+                    }
+                });
+
+                if (bestMatch) matched.push(bestMatch);
+            });
+
+            return matched;
+        }
+
+        function caliperMatch(data, caliper) {
+            const treated = data.filter(d => d.treatment === 1);
+            const control = data.filter(d => d.treatment === 0);
+
+            const matched = [];
+
+            treated.forEach(t => {
+                let minDist = Infinity;
+                let bestMatch = null;
+
+                control.forEach(c => {
+                    const dist = Math.abs(t.ps - c.ps);
+                    if (dist < minDist && dist < caliper) {
+                        minDist = dist;
+                        bestMatch = c;
+                    }
+                });
+
+                if (bestMatch) {
+                    matched.push(t, bestMatch);
+                }
+            });
+
+            return matched;
+        }
+
+        function optimalMatch(data) {
+            // Simplified optimal matching (greedy approximation)
+            return nearestNeighborMatch(data);
+        }
+
+        function variance(arr) {
+            const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+            return arr.reduce((sum, x) => sum + Math.pow(x - mean, 2), 0) / arr.length;
+        }
+
+        function visualizeMatching(data, method) {
+            const container = document.getElementById('matching-viz');
+            container.innerHTML = '<canvas id="match-canvas" width="700" height="400"></canvas>';
+
+            const canvas = document.getElementById('match-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Plot propensity scores
+            const treated = data.filter(d => d.treatment === 1);
+            const control = data.filter(d => d.treatment === 0);
+
+            ctx.fillStyle = '#3498db';
+            treated.forEach((d, i) => {
+                const x = 50 + d.ps * 600;
+                const y = 100 + i * 3;
+                ctx.beginPath();
+                ctx.arc(x, Math.min(y, 350), 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.fillStyle = '#e74c3c';
+            control.forEach((d, i) => {
+                const x = 50 + d.ps * 600;
+                const y = 100 + i * 3;
+                ctx.beginPath();
+                ctx.arc(x, Math.min(y, 350), 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Axes
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(50, 375);
+            ctx.lineTo(650, 375);
+            ctx.stroke();
+
+            // Labels
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Propensity Score', 350, 395);
+            ctx.fillText('● Treated', 100, 30);
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillText('● Control', 200, 30);
+        }
+
+        // Update value display
+        document.getElementById('confounding-level').addEventListener('input', (e) => {
+            document.getElementById('conf-level-val').textContent = e.target.value;
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            runMatchingComparison();
+        });
+    </script>
+</body>
+</html>

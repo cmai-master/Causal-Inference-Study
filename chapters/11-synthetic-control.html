@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 11: 합성 통제법</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1>🎓 Causal Inference 학습 가이드</h1>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="chapter-header">
+            <span class="badge advanced">고급 - Chapter 11</span>
+            <h1>합성 통제법 (Synthetic Control Method)</h1>
+            <p class="lead">단일 처치 단위의 인과 효과 추정을 위한 혁신적 방법</p>
+        </div>
+
+        <div class="content-section">
+            <h2>🎯 왜 합성 통제법인가?</h2>
+            <p>
+                정책이나 사건이 <strong>하나의 지역/국가/조직</strong>에만 영향을 미칠 때,
+                적절한 비교 대상(대조군)을 찾기 어렵습니다. 합성 통제법은
+                여러 미처치 단위의 <strong>가중 평균</strong>으로 합성 대조군을 만듭니다.
+            </p>
+
+            <h3>핵심 아이디어</h3>
+            <div class="equation">
+                <p><strong>합성 통제:</strong></p>
+                <p>Ŷ<sub>0t</sub> = Σ w<sub>j</sub> Y<sub>jt</sub></p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    w<sub>j</sub>: 최적 가중치 (w<sub>j</sub> ≥ 0, Σw<sub>j</sub> = 1)<br>
+                    처치 전 기간에 처치 단위와 가장 유사하도록 선택
+                </p>
+            </div>
+
+            <h3>가중치 최적화</h3>
+            <div class="equation">
+                <p>min<sub>W</sub> ||X<sub>1</sub> - X<sub>0</sub>W||<sub>V</sub></p>
+                <p style="font-size: 0.9rem;">
+                    X<sub>1</sub>: 처치 단위의 예측 변수<br>
+                    X<sub>0</sub>: 대조 풀의 예측 변수<br>
+                    V: 가중치 행렬
+                </p>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>from SyntheticControlMethods import Synth
+
+# 합성 통제
+sc = Synth(
+    dataprep_out=dataprep,
+    optim_method='Nelder-Mead'
+)
+
+# 가중치 추정
+sc.fit()
+
+# 효과 추정
+treatment_effect = sc.att()</code></pre>
+            </div>
+
+            <h3>통계적 추론: Placebo Tests</h3>
+            <p>
+                전통적 통계적 추론이 불가능하므로 <strong>위약 검정</strong>을 사용합니다.
+            </p>
+            <ul>
+                <li><strong>In-space placebo:</strong> 각 대조 단위를 처치 단위로 가정</li>
+                <li><strong>In-time placebo:</strong> 가짜 처치 시점 설정</li>
+            </ul>
+
+            <h3>대표 연구: Abadie et al. (2003) - 테러와 경제</h3>
+            <p>
+                바스크 지역의 테러가 경제에 미친 영향<br>
+                처치: 바스크, 대조: 스페인 다른 지역들의 가중 평균<br>
+                결과: 1인당 GDP 약 10% 감소
+            </p>
+
+            <h3>확장 방법</h3>
+            <ul>
+                <li><strong>Augmented SC (Ben-Michael et al., 2021):</strong> 회귀 조정 추가</li>
+                <li><strong>Penalized SC (Abadie & L'Hour, 2021):</strong> 정규화</li>
+                <li><strong>Matrix Completion:</strong> 다중 처치 단위</li>
+            </ul>
+        </div>
+
+        <div class="chapter-nav">
+            <a href="10-did.html" class="btn">← Chapter 10</a>
+            <a href="12-mediation.html" class="btn btn-success">Chapter 12: 매개 분석 →</a>
+        </div>
+    </div>
+    <footer><p>&copy; 2024 Causal Inference 학습 가이드</p></footer>
+    <script src="../js/main.js"></script>
+</body>
+</html>

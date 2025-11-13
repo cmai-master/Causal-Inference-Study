@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 10: 이중차분법</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1>🎓 Causal Inference 학습 가이드</h1>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="chapter-header">
+            <span class="badge intermediate">중급 - Chapter 10</span>
+            <h1>이중차분법 (Difference-in-Differences)</h1>
+            <p class="lead">패널 데이터에서 시간에 따른 변화를 활용한 인과추론</p>
+        </div>
+
+        <div class="content-section">
+            <h2>🎯 DiD의 핵심 아이디어</h2>
+            <p>
+                처치군과 대조군의 <strong>변화의 차이</strong>를 비교하여 인과 효과를 추정합니다.
+                시간에 불변하는 교란 변수를 자동으로 통제합니다.
+            </p>
+
+            <div class="equation">
+                <p><strong>DiD 추정량:</strong></p>
+                <p>
+                    τ = (Ȳ<sub>treated,post</sub> - Ȳ<sub>treated,pre</sub>) - 
+                    (Ȳ<sub>control,post</sub> - Ȳ<sub>control,pre</sub>)
+                </p>
+            </div>
+
+            <h3>평행 추세 가정 (Parallel Trends)</h3>
+            <div class="info-box note">
+                <h4>💡 핵심 가정</h4>
+                <p>
+                    처치가 없었다면, 처치군과 대조군의 <strong>추세가 평행</strong>했을 것<br>
+                    = 시간에 따른 변화가 동일했을 것
+                </p>
+                <p style="margin-top: 1rem; color: #e74c3c;">
+                    <strong>⚠️ 검증 불가능:</strong> 반사실이므로 직접 확인 불가<br>
+                    대신 사전 추세(pre-trends) 분석으로 간접 확인
+                </p>
+            </div>
+
+            <h3>회귀 명세</h3>
+            <div class="equation">
+                <p>Y<sub>it</sub> = α + βT<sub>i</sub> + γPost<sub>t</sub> + δ(T<sub>i</sub>×Post<sub>t</sub>) + ε<sub>it</sub></p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    δ: DiD 추정량 (처치 효과)
+                </p>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>import pandas as pd
+from linearmodels import PanelOLS
+
+# DiD 회귀
+data['treated_post'] = data['treated'] * data['post']
+
+model = PanelOLS.from_formula(
+    'Y ~ treated + post + treated_post + EntityEffects + TimeEffects',
+    data=data.set_index(['id', 'time'])
+)
+result = model.fit(cov_type='clustered', cluster_entity=True)
+print(result)</code></pre>
+            </div>
+
+            <h3>Event Study (동적 DiD)</h3>
+            <p>처치 전후의 동적 효과를 추정하여 평행 추세 가정 검증</p>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(fixest)
+
+# Event study
+event_study <- feols(
+    Y ~ i(time_to_treatment, treated, ref=-1) | id + year,
+    data = panel_data,
+    cluster = ~id
+)
+
+# Plot
+iplot(event_study)</code></pre>
+            </div>
+
+            <h3>대표 연구: Card & Krueger (1994) - 최저임금</h3>
+            <p>
+                뉴저지의 최저임금 인상이 고용에 미친 영향<br>
+                처치군: 뉴저지, 대조군: 펜실베이니아<br>
+                결과: 고용 감소 없음 (전통적 예측과 상반)
+            </p>
+
+            <h3>최신 방법론</h3>
+            <ul>
+                <li><strong>Callaway & Sant'Anna (2021):</strong> 이질적 시기 처치</li>
+                <li><strong>Sun & Abraham (2021):</strong> Interaction-weighted estimator</li>
+                <li><strong>Goodman-Bacon (2021):</strong> DiD 분해 정리</li>
+            </ul>
+        </div>
+
+        <div class="chapter-nav">
+            <a href="09-rdd.html" class="btn">← Chapter 9</a>
+            <a href="11-synthetic-control.html" class="btn btn-success">Chapter 11: 합성 통제법 →</a>
+        </div>
+    </div>
+    <footer><p>&copy; 2024 Causal Inference 학습 가이드</p></footer>
+    <script src="../js/main.js"></script>
+</body>
+</html>

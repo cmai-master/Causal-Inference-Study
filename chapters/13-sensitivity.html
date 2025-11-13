@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 13: 민감도 분석</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1>🎓 Causal Inference 학습 가이드</h1>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="chapter-header">
+            <span class="badge advanced">고급 - Chapter 13</span>
+            <h1>민감도 분석 (Sensitivity Analysis)</h1>
+            <p class="lead">관찰되지 않은 교란에 대한 인과 추론의 강건성 평가</p>
+        </div>
+
+        <div class="content-section">
+            <h2>🎯 왜 민감도 분석인가?</h2>
+            <p>
+                관찰 연구의 근본적 문제: <strong>unconfoundedness 가정은 검증 불가능</strong><br>
+                관찰되지 않은 교란이 얼마나 강해야 결론이 바뀌는지 평가합니다.
+            </p>
+
+            <h3>1. Rosenbaum Bounds</h3>
+            <p>
+                매칭 연구에서 관찰되지 않은 교란의 영향 평가
+            </p>
+
+            <div class="equation">
+                <p><strong>민감도 파라미터 Γ:</strong></p>
+                <p>1/Γ ≤ odds<sub>i</sub>/odds<sub>j</sub> ≤ Γ</p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    Γ = 1: 무교란 (이상적)<br>
+                    Γ = 2: 한 개체가 다른 개체보다 처치받을 확률이 2배까지 차이<br>
+                    Γ가 클수록 결론이 강건함
+                </p>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(rbounds)
+
+# Rosenbaum bounds
+psens(
+    x = treated_outcomes,
+    y = control_outcomes,
+    Gamma = seq(1, 5, 0.1)
+)</code></pre>
+            </div>
+
+            <h3>2. E-values (VanderWeele & Ding, 2017)</h3>
+            <p>
+                관찰되지 않은 교란 변수가 얼마나 강해야 추정된 효과가 사라지는지
+            </p>
+
+            <div class="equation">
+                <p><strong>E-value:</strong></p>
+                <p>E-value = RR + √(RR × (RR - 1))</p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    RR: 위험비 또는 효과 추정값
+                </p>
+            </div>
+
+            <div class="info-box tip">
+                <h4>✅ E-value 해석</h4>
+                <p>
+                    E-value = 3.0이면:<br>
+                    관찰되지 않은 교란이 처치와 결과 모두에 3배의 연관성을 가져야
+                    관찰된 효과가 완전히 설명됨
+                </p>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(EValue)
+
+# E-value 계산
+evalues.RR(
+    est = 2.5,  # 추정된 위험비
+    lo = 1.8,   # 95% CI 하한
+    hi = 3.5,   # 95% CI 상한
+    true = 1    # 귀무가설
+)</code></pre>
+            </div>
+
+            <h3>3. 부분 식별 (Partial Identification)</h3>
+            <p>
+                Manski Bounds: 최악의 경우 시나리오 하에서도 효과의 범위 제공
+            </p>
+
+            <h3>4. 벤치마킹</h3>
+            <p>
+                관찰된 교란과 비교하여 관찰되지 않은 교란의 강도 평가
+            </p>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(sensemakr)
+
+# 민감도 분석
+sense <- sensemakr(
+    model = lm_model,
+    treatment = "treatment",
+    benchmark_covariates = "observed_confounder",
+    kd = 1  # 관찰된 교란만큼 강한 미관찰 교란
+)
+
+plot(sense)</code></pre>
+            </div>
+
+            <h3>실전 가이드</h3>
+            <div class="info-box note">
+                <h4>💡 민감도 분석 체크리스트</h4>
+                <ol>
+                    <li>□ 주 분석 후 항상 민감도 분석 수행</li>
+                    <li>□ 다양한 방법 적용 (Rosenbaum, E-values, 벤치마킹)</li>
+                    <li>□ 결과를 논문에 보고</li>
+                    <li>□ 합리적인 교란 시나리오 고려</li>
+                    <li>□ 결론의 강건성 평가</li>
+                </ol>
+            </div>
+
+            <h3>대표 연구</h3>
+            <p>
+                Rosenbaum (2002): "흡연과 폐암 연관성은 Γ=6 이상에서도 강건"<br>
+                → 매우 강한 인과 증거
+            </p>
+        </div>
+
+        <div class="chapter-nav">
+            <a href="12-mediation.html" class="btn">← Chapter 12</a>
+            <a href="14-ml-causal.html" class="btn btn-success">Chapter 14: ML과 인과추론 →</a>
+        </div>
+    </div>
+    <footer><p>&copy; 2024 Causal Inference 학습 가이드</p></footer>
+    <script src="../js/main.js"></script>
+</body>
+</html>

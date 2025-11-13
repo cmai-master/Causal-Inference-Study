@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 8: 도구 변수</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1>🎓 Causal Inference 학습 가이드</h1>
+            <ul class="nav-links">
+                <li><a href="../index.html">홈</a></li>
+                <li><a href="#theory">이론</a></li>
+                <li><a href="#estimation">추정</a></li>
+                <li><a href="#applications">응용</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="chapter-header">
+            <span class="badge intermediate">중급 - Chapter 8</span>
+            <h1>도구 변수 (Instrumental Variables)</h1>
+            <p class="lead">관찰되지 않은 교란과 내생성 문제를 해결하는 강력한 인과추론 도구</p>
+
+            <div class="chapter-nav">
+                <a href="07-matching.html" class="btn">← 이전 챕터</a>
+                <a href="09-rdd.html" class="btn btn-success">다음 챕터 →</a>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📖 왜 도구 변수가 필요한가?</h2>
+
+            <p>
+                성향 점수나 매칭 방법은 <strong>관찰된 교란</strong>만 통제할 수 있습니다.
+                하지만 실제로는 측정되지 않은 교란 변수가 존재하는 경우가 많습니다.
+            </p>
+
+            <div class="info-box warning">
+                <h4>⚠️ 내생성 문제 (Endogeneity)</h4>
+                <p><strong>내생성이 발생하는 경우:</strong></p>
+                <ul>
+                    <li><strong>생략 변수 편향:</strong> 중요한 변수를 관찰/측정하지 못함</li>
+                    <li><strong>측정 오차:</strong> 처치 변수가 부정확하게 측정됨</li>
+                    <li><strong>역인과:</strong> Y가 X에 영향을 미침 (동시성)</li>
+                </ul>
+                <p style="margin-top: 1rem;">
+                    이런 경우 E[u|X] ≠ 0이 되어 OLS 추정량이 편향됩니다.
+                </p>
+            </div>
+
+            <h3>도구 변수의 아이디어</h3>
+
+            <p>
+                도구 변수(Instrumental Variable, IV)는 처치에는 영향을 주지만,
+                결과에는 처치를 통해서만 영향을 미치는 변수입니다.
+            </p>
+
+            <div class="simulation-container">
+                <div id="dag-iv"></div>
+                <p style="text-align: center; margin-top: 1rem;">
+                    <strong>DAG:</strong> Z → T → Y, U → T, U → Y<br>
+                    Z: 도구 변수, T: 처치, Y: 결과, U: 관찰되지 않은 교란
+                </p>
+            </div>
+        </div>
+
+        <div class="content-section" id="theory">
+            <h2>🎓 이론적 기초</h2>
+
+            <h3>1. 도구 변수의 가정</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>A1. 관련성 (Relevance)</h4>
+                    <div class="equation">
+                        Cov(Z, T) ≠ 0
+                    </div>
+                    <p>도구가 처치와 상관관계를 가짐</p>
+                    <p style="color: #27ae60; font-weight: bold;">✓ 검증 가능</p>
+                </div>
+
+                <div class="card">
+                    <h4>A2. 외생성 (Exogeneity)</h4>
+                    <div class="equation">
+                        Cov(Z, u) = 0
+                    </div>
+                    <p>도구가 오차항과 독립</p>
+                    <p style="color: #e74c3c; font-weight: bold;">✗ 검증 불가능</p>
+                </div>
+
+                <div class="card">
+                    <h4>A3. 배제 제약 (Exclusion)</h4>
+                    <div class="equation">
+                        Z → Y는 T를 통해서만
+                    </div>
+                    <p>도구가 결과에 직접 영향 없음</p>
+                    <p style="color: #e74c3c; font-weight: bold;">✗ 검증 불가능</p>
+                </div>
+            </div>
+
+            <div class="info-box warning">
+                <h4>⚠️ 좋은 도구 변수 찾기의 어려움</h4>
+                <p>
+                    A2와 A3는 검증 불가능하므로, <strong>경제 이론</strong>이나 <strong>제도적 지식</strong>에
+                    의존해야 합니다. 이것이 IV 방법의 가장 큰 도전과제입니다.
+                </p>
+            </div>
+
+            <h3>2. IV 추정량의 유도</h3>
+
+            <p>구조 방정식:</p>
+
+            <div class="equation">
+                <p>
+                    Y = α + βT + u<br>
+                    T = γ + δZ + v
+                </p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    목표: β 추정 (T가 Y에 미치는 인과 효과)
+                </p>
+            </div>
+
+            <p>IV 가정 하에서:</p>
+
+            <div class="equation">
+                <p>
+                    Cov(Z, Y) = Cov(Z, α + βT + u)<br>
+                    = β·Cov(Z, T) + Cov(Z, u)<br>
+                    = β·Cov(Z, T) &nbsp;&nbsp; (∵ Cov(Z, u) = 0)
+                </p>
+            </div>
+
+            <p>따라서:</p>
+
+            <div class="equation">
+                <p><strong>Wald 추정량:</strong></p>
+                <p>
+                    β̂<sub>IV</sub> = Cov(Z, Y) / Cov(Z, T)
+                </p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    = (처치가 결과에 미친 효과) / (도구가 처치에 미친 효과)<br>
+                    = "Reduced Form" / "First Stage"
+                </p>
+            </div>
+
+            <h3>3. 2SLS (Two-Stage Least Squares)</h3>
+
+            <p>
+                가장 널리 사용되는 IV 추정 방법입니다.
+            </p>
+
+            <div class="info-box note">
+                <h4>💡 2SLS 절차</h4>
+                <ol>
+                    <li><strong>First Stage:</strong> T를 Z에 회귀하여 T̂ 얻기
+                        <div class="equation">T = γ + δZ + v</div>
+                    </li>
+                    <li><strong>Second Stage:</strong> Y를 T̂에 회귀
+                        <div class="equation">Y = α + βT̂ + u</div>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>from statsmodels.sandbox.regression.gmm import IV2SLS
+
+# 2SLS 추정
+model = IV2SLS(endog=Y,           # 종속변수
+               exog=X,             # 외생 공변량
+               instrument=Z)       # 도구 변수
+results = model.fit()
+
+print(results.summary())</code></pre>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(AER)
+
+# 2SLS 추정
+iv_model <- ivreg(Y ~ T + X1 + X2 | Z + X1 + X2,
+                  data = mydata)
+summary(iv_model, diagnostics = TRUE)</code></pre>
+            </div>
+
+            <h3>4. 약한 도구 문제 (Weak Instruments)</h3>
+
+            <p>
+                도구가 처치와 약하게 상관될 때 심각한 문제가 발생합니다.
+            </p>
+
+            <div class="info-box warning">
+                <h4>⚠️ 약한 도구의 문제점</h4>
+                <ul>
+                    <li><strong>큰 편향:</strong> 유한 표본에서 편향 증가</li>
+                    <li><strong>나쁜 점근 성질:</strong> 정규 근사 실패</li>
+                    <li><strong>큰 표준오차:</strong> 추정의 불확실성 증가</li>
+                    <li><strong>크기 왜곡:</strong> t-검정과 F-검정 신뢰 불가</li>
+                </ul>
+            </div>
+
+            <h4>약한 도구 진단</h4>
+
+            <div class="equation">
+                <p><strong>First-Stage F-통계량:</strong></p>
+                <p>F = (R² / k) / ((1 - R²) / (n - k - 1))</p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    <strong>경험 법칙 (Stock & Yogo, 2005):</strong><br>
+                    F > 10: 강한 도구<br>
+                    F < 10: 약한 도구 (경고)
+                </p>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>import statsmodels.api as sm
+
+# First stage 회귀
+first_stage = sm.OLS(T, sm.add_constant(Z)).fit()
+
+# F-통계량 계산
+f_stat = first_stage.fvalue
+print(f"First-stage F-statistic: {f_stat:.2f}")
+
+if f_stat < 10:
+    print("⚠️ 경고: 약한 도구 의심!")
+else:
+    print("✓ 강한 도구")</code></pre>
+            </div>
+
+            <h3>5. 국소 평균 처치 효과 (LATE)</h3>
+
+            <p>
+                Imbens & Angrist (1994)의 중요한 발견: IV는 전체 모집단이 아닌
+                <strong>순응자(compliers)</strong>에 대한 효과를 추정합니다.
+            </p>
+
+            <div class="info-box note">
+                <h4>💡 개체 유형 (Principal Strata)</h4>
+                <ul>
+                    <li><strong>Compliers:</strong> Z=1일 때 T=1, Z=0일 때 T=0</li>
+                    <li><strong>Always-takers:</strong> Z와 무관하게 항상 T=1</li>
+                    <li><strong>Never-takers:</strong> Z와 무관하게 항상 T=0</li>
+                    <li><strong>Defiers:</strong> Z=1일 때 T=0, Z=0일 때 T=1</li>
+                </ul>
+            </div>
+
+            <div class="equation">
+                <p><strong>LATE (Local Average Treatment Effect):</strong></p>
+                <p>β<sub>IV</sub> = E[Y(1) - Y(0) | Complier]</p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    순응자에 대한 평균 처치 효과<br>
+                    ≠ ATE (전체 모집단 평균 효과)
+                </p>
+            </div>
+
+            <div class="info-box tip">
+                <h4>✅ LATE의 함의</h4>
+                <ul>
+                    <li>IV 추정량은 외적 타당도가 제한적</li>
+                    <li>누가 순응자인지 알 수 없음</li>
+                    <li>다른 도구 → 다른 LATE</li>
+                    <li>해석 시 순응자 특성 고려 필요</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-section" id="estimation">
+            <h2>💻 추정 방법</h2>
+
+            <h3>완전한 IV 분석 파이프라인</h3>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from scipy import stats
+
+class IVEstimator:
+    def __init__(self):
+        self.first_stage = None
+        self.reduced_form = None
+        self.iv_results = None
+
+    def fit(self, Y, T, Z, X=None):
+        """
+        IV 추정 수행
+
+        Parameters:
+        -----------
+        Y : array-like
+            결과 변수
+        T : array-like
+            내생 처치 변수
+        Z : array-like
+            도구 변수
+        X : array-like, optional
+            외생 공변량
+        """
+        self.Y = Y
+        self.T = T
+        self.Z = Z
+        self.X = X if X is not None else np.ones((len(Y), 1))
+
+        # Combine exogenous variables with instrument
+        X_with_Z = np.column_stack([self.X, Z])
+
+        # First Stage: T ~ Z + X
+        self.first_stage = sm.OLS(T, X_with_Z).fit()
+        T_hat = self.first_stage.fittedvalues
+
+        # Reduced Form: Y ~ Z + X
+        self.reduced_form = sm.OLS(Y, X_with_Z).fit()
+
+        # Second Stage: Y ~ T_hat + X
+        X_with_That = np.column_stack([self.X, T_hat])
+        self.second_stage = sm.OLS(Y, X_with_That).fit()
+
+        # Wald estimator
+        self.wald_estimate = self._compute_wald()
+
+        return self
+
+    def _compute_wald(self):
+        """Wald 추정량 계산"""
+        # Z가 이항 변수인 경우의 간단한 Wald
+        if len(np.unique(self.Z)) == 2:
+            Z1_mask = self.Z == 1
+            Z0_mask = self.Z == 0
+
+            # ITT_Y: Intent-to-Treat effect on Y
+            itt_y = self.Y[Z1_mask].mean() - self.Y[Z0_mask].mean()
+
+            # ITT_T: Intent-to-Treat effect on T
+            itt_t = self.T[Z1_mask].mean() - self.T[Z0_mask].mean()
+
+            # LATE
+            late = itt_y / itt_t
+
+            return {
+                'ITT_Y': itt_y,
+                'ITT_T': itt_t,
+                'LATE': late
+            }
+        return None
+
+    def diagnose_weak_instruments(self):
+        """약한 도구 진단"""
+        # First-stage F-statistic
+        f_stat = self.first_stage.fvalue
+
+        # Partial R²
+        partial_r2 = self.first_stage.rsquared
+
+        # Stock-Yogo critical values
+        critical_10pct = 16.38  # 10% maximal IV size
+        critical_15pct = 8.96   # 15% maximal IV size
+
+        diagnostics = {
+            'f_statistic': f_stat,
+            'partial_r2': partial_r2,
+            'is_weak': f_stat < 10,
+            'stock_yogo_10pct': f_stat > critical_10pct,
+            'stock_yogo_15pct': f_stat > critical_15pct
+        }
+
+        return diagnostics
+
+    def anderson_rubin_test(self, alpha=0.05):
+        """
+        Anderson-Rubin 약한 도구 강건 검정
+
+        도구가 약해도 올바른 크기를 가지는 검정
+        """
+        # Restricted model: Y ~ X (without T)
+        restricted = sm.OLS(self.Y, self.X).fit()
+
+        # Test statistic
+        n = len(self.Y)
+        k = self.X.shape[1]
+        ar_stat = n * (1 - restricted.rsquared) / (1 - self.reduced_form.rsquared)
+
+        # Chi-square distribution
+        p_value = 1 - stats.chi2.cdf(ar_stat, df=1)
+
+        return {
+            'ar_statistic': ar_stat,
+            'p_value': p_value,
+            'reject_null': p_value < alpha
+        }
+
+    def summary(self):
+        """결과 요약"""
+        print("=" * 60)
+        print("도구 변수 추정 결과")
+        print("=" * 60)
+
+        # First Stage
+        print("\n[First Stage: T ~ Z + X]")
+        print(f"Coefficient on Z: {self.first_stage.params[-1]:.4f}")
+        print(f"t-statistic: {self.first_stage.tvalues[-1]:.4f}")
+        print(f"F-statistic: {self.first_stage.fvalue:.4f}")
+
+        # Weak instrument diagnostics
+        diag = self.diagnose_weak_instruments()
+        print(f"\n약한 도구 진단:")
+        print(f"  F-stat: {diag['f_statistic']:.2f}")
+        if diag['is_weak']:
+            print("  ⚠️ 경고: 약한 도구 의심 (F < 10)")
+        else:
+            print("  ✓ 강한 도구 (F > 10)")
+
+        # Second Stage (IV estimate)
+        print(f"\n[Second Stage (IV estimate)]")
+        print(f"Coefficient on T: {self.second_stage.params[-1]:.4f}")
+        print(f"SE: {self.second_stage.bse[-1]:.4f}")
+
+        # Wald estimate (if applicable)
+        if self.wald_estimate:
+            print(f"\n[Wald Estimator]")
+            print(f"ITT on Y: {self.wald_estimate['ITT_Y']:.4f}")
+            print(f"ITT on T: {self.wald_estimate['ITT_T']:.4f}")
+            print(f"LATE: {self.wald_estimate['LATE']:.4f}")
+
+        print("=" * 60)
+
+
+# 사용 예시
+estimator = IVEstimator()
+estimator.fit(Y, T, Z, X)
+estimator.summary()</code></pre>
+            </div>
+
+            <h3>다중 도구 변수</h3>
+
+            <p>
+                도구가 여러 개일 때, 과식별(overidentification)을 활용할 수 있습니다.
+            </p>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code># 다중 도구 변수
+Z_multiple = np.column_stack([Z1, Z2, Z3])
+
+# GMM 추정
+from linearmodels.iv import IVGMM
+
+model = IVGMM(dependent=Y,
+              exog=X,
+              endog=T,
+              instruments=Z_multiple)
+results = model.fit()
+
+# Sargan-Hansen 과식별 검정
+print(f"J-statistic: {results.sargan.stat:.4f}")
+print(f"p-value: {results.sargan.pval:.4f}")</code></pre>
+            </div>
+        </div>
+
+        <div class="content-section" id="applications">
+            <h2>🌍 실제 응용 사례</h2>
+
+            <h3>1. 교육 수익률 (Angrist & Krueger, 1991)</h3>
+
+            <div class="card">
+                <h4>연구 질문</h4>
+                <p>교육이 임금에 미치는 인과 효과는?</p>
+
+                <h4>문제</h4>
+                <p>능력(ability)이 관찰되지 않아 내생성 발생</p>
+
+                <h4>도구 변수</h4>
+                <p><strong>출생 분기(Quarter of Birth)</strong></p>
+                <ul>
+                    <li>의무 교육 연령 법으로 인해 출생 분기가 교육 연수에 영향</li>
+                    <li>출생 분기는 능력과 무관 (외생적)</li>
+                </ul>
+
+                <h4>결과</h4>
+                <p>
+                    OLS: 교육 1년 → 임금 6% 증가<br>
+                    IV: 교육 1년 → 임금 7-10% 증가
+                </p>
+
+                <h4>해석</h4>
+                <p>
+                    LATE: 의무 교육 연령에 제약받는 사람들(순응자)에 대한 효과<br>
+                    ≠ 대학 진학자에 대한 효과
+                </p>
+            </div>
+
+            <h3>2. 제도가 경제에 미치는 영향 (Acemoglu et al., 2001)</h3>
+
+            <div class="card">
+                <h4>연구 질문</h4>
+                <p>제도의 질이 경제 발전에 미치는 영향은?</p>
+
+                <h4>문제</h4>
+                <p>역인과: 부유한 나라가 좋은 제도를 만들 수 있음</p>
+
+                <h4>도구 변수</h4>
+                <p><strong>정착민 사망률(Settler Mortality)</strong></p>
+                <ul>
+                    <li>역사적 질병 환경이 식민지 제도 유형을 결정</li>
+                    <li>사망률이 낮으면 정착형 식민지 → 좋은 제도</li>
+                    <li>사망률이 높으면 착취형 식민지 → 나쁜 제도</li>
+                </ul>
+
+                <h4>결과</h4>
+                <p>제도가 1 표준편차 개선 → 1인당 소득 2배 증가</p>
+            </div>
+
+            <h3>3. 군복무와 임금 (Angrist, 1990)</h3>
+
+            <div class="card">
+                <h4>도구 변수: 베트남 징병 추첨</h4>
+                <p>
+                    생년월일 기반 무작위 추첨 → 완벽한 도구<br>
+                    결과: 참전자들의 임금이 약 15% 낮음
+                </p>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 참고문헌</h2>
+
+            <ul style="line-height: 2;">
+                <li>Acemoglu, D., Johnson, S., & Robinson, J. A. (2001). The colonial origins of comparative development. <em>American Economic Review</em>, 91(5), 1369-1401.</li>
+                <li>Angrist, J. D. (1990). Lifetime earnings and the Vietnam era draft lottery. <em>American Economic Review</em>, 80(3), 313-336.</li>
+                <li>Angrist, J. D., & Krueger, A. B. (1991). Does compulsory school attendance affect schooling and earnings? <em>Quarterly Journal of Economics</em>, 106(4), 979-1014.</li>
+                <li>Angrist, J. D., & Pischke, J. S. (2008). <em>Mostly harmless econometrics</em>. Princeton University Press.</li>
+                <li>Imbens, G. W., & Angrist, J. D. (1994). Identification and estimation of local average treatment effects. <em>Econometrica</em>, 62(2), 467-475.</li>
+                <li>Stock, J. H., & Yogo, M. (2005). Testing for weak instruments in linear IV regression. <em>Identification and Inference for Econometric Models</em>, 80-108.</li>
+            </ul>
+        </div>
+
+        <div class="chapter-nav">
+            <a href="07-matching.html" class="btn">← Chapter 7</a>
+            <a href="09-rdd.html" class="btn btn-success">Chapter 9: 회귀 불연속 설계 →</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Causal Inference 학습 가이드</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script>
+        // Initialize IV DAG
+        window.addEventListener('load', () => {
+            const dag = new DAGVisualization('dag-iv');
+            dag.addNode('Z', 'Z', 100, 150);
+            dag.addNode('T', 'T', 300, 150);
+            dag.addNode('Y', 'Y', 500, 150);
+            dag.addNode('U', 'U', 400, 50);
+
+            dag.addEdge('Z', 'T');
+            dag.addEdge('T', 'Y');
+            dag.addEdge('U', 'T');
+            dag.addEdge('U', 'Y');
+
+            dag.draw(600, 250);
+        });
+    </script>
+</body>
+</html>
