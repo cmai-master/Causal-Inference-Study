@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: 잠재적 결과 프레임워크</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1>🎓 Causal Inference 학습 가이드</h1>
+            <ul class="nav-links">
+                <li><a href="../index.html">홈</a></li>
+                <li><a href="#content">학습내용</a></li>
+                <li><a href="#interactive">실습</a></li>
+                <li><a href="#quiz">퀴즈</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="chapter-header">
+            <span class="badge beginner">입문 - Chapter 3</span>
+            <h1>잠재적 결과 프레임워크 (Potential Outcomes Framework)</h1>
+            <p class="lead">Rubin Causal Model의 핵심 개념인 잠재적 결과를 이해하고, 인과 효과를 정량화하는 방법을 학습합니다.</p>
+
+            <div class="chapter-nav">
+                <a href="02-correlation-vs-causation.html" class="btn">← 이전 챕터</a>
+                <a href="04-dag-basics.html" class="btn btn-success">다음 챕터 →</a>
+            </div>
+        </div>
+
+        <div class="content-section" id="content">
+            <h2>📖 학습 목표</h2>
+            <ul>
+                <li>잠재적 결과(Potential Outcomes)의 개념 이해</li>
+                <li>개별 처치 효과(ITE)와 평균 처치 효과(ATE) 구분</li>
+                <li>인과추론의 근본 문제(Fundamental Problem) 이해</li>
+                <li>SUTVA (Stable Unit Treatment Value Assumption) 가정 학습</li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>🎯 잠재적 결과란?</h2>
+
+            <p>
+                <strong>잠재적 결과 프레임워크(Potential Outcomes Framework)</strong>는
+                Donald Rubin이 정립한 인과추론의 핵심 패러다임입니다.
+                각 개체는 모든 가능한 처치 수준에 대해 잠재적 결과를 가진다는 개념입니다.
+            </p>
+
+            <div class="info-box note">
+                <h4>💡 핵심 아이디어</h4>
+                <p>각 개체 i에 대해:</p>
+                <ul>
+                    <li><strong>Y<sub>i</sub>(1)</strong>: 처치를 받았을 때의 잠재적 결과</li>
+                    <li><strong>Y<sub>i</sub>(0)</strong>: 처치를 받지 않았을 때의 잠재적 결과</li>
+                </ul>
+                <p>실제로는 둘 중 하나만 관찰할 수 있습니다!</p>
+            </div>
+
+            <h3>간단한 예시: 약물 효과</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>환자</th>
+                        <th>Y(1)<br>약 먹음</th>
+                        <th>Y(0)<br>약 안먹음</th>
+                        <th>실제 처치</th>
+                        <th>관찰된 결과</th>
+                        <th>개별 효과<br>ITE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>환자 1</td>
+                        <td>120</td>
+                        <td>140</td>
+                        <td>1 (약 먹음)</td>
+                        <td>120</td>
+                        <td>-20</td>
+                    </tr>
+                    <tr>
+                        <td>환자 2</td>
+                        <td>115</td>
+                        <td>130</td>
+                        <td>0 (안먹음)</td>
+                        <td>130</td>
+                        <td>-15</td>
+                    </tr>
+                    <tr>
+                        <td>환자 3</td>
+                        <td>125</td>
+                        <td>150</td>
+                        <td>1 (약 먹음)</td>
+                        <td>125</td>
+                        <td>-25</td>
+                    </tr>
+                    <tr>
+                        <td>환자 4</td>
+                        <td>118</td>
+                        <td>135</td>
+                        <td>0 (안먹음)</td>
+                        <td>135</td>
+                        <td>-17</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box warning">
+                <h4>⚠️ 인과추론의 근본 문제</h4>
+                <p>
+                    위 표에서 각 환자의 Y(1)과 Y(0)을 모두 알 수 있다면 완벽하겠지만,
+                    실제로는 <strong>불가능</strong>합니다. 각 환자는 약을 먹거나 먹지 않거나 둘 중 하나만 가능합니다.
+                </p>
+                <p>
+                    관찰된 결과 = Y<sub>i</sub> = T<sub>i</sub> × Y<sub>i</sub>(1) + (1 - T<sub>i</sub>) × Y<sub>i</sub>(0)
+                </p>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📊 인과 효과의 종류</h2>
+
+            <h3>1. 개별 처치 효과 (Individual Treatment Effect, ITE)</h3>
+
+            <div class="equation">
+                <p>τ<sub>i</sub> = Y<sub>i</sub>(1) - Y<sub>i</sub>(0)</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    개체 i의 처치 효과
+                </p>
+            </div>
+
+            <p>
+                <strong>문제:</strong> ITE는 직접 관찰 불가능 (둘 중 하나만 관찰 가능)
+            </p>
+
+            <h3>2. 평균 처치 효과 (Average Treatment Effect, ATE)</h3>
+
+            <div class="equation">
+                <p>ATE = E[Y(1) - Y(0)] = E[Y(1)] - E[Y(0)]</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    모집단 전체의 평균 처치 효과
+                </p>
+            </div>
+
+            <h3>3. 처치군 평균 처치 효과 (ATT)</h3>
+
+            <div class="equation">
+                <p>ATT = E[Y(1) - Y(0) | T = 1]</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    실제로 처치를 받은 사람들의 평균 효과
+                </p>
+            </div>
+
+            <h3>4. 미처치군 평균 처치 효과 (ATU)</h3>
+
+            <div class="equation">
+                <p>ATU = E[Y(1) - Y(0) | T = 0]</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    처치를 받지 않은 사람들에게 처치했을 때의 평균 효과
+                </p>
+            </div>
+
+            <div class="info-box tip">
+                <h4>💡 언제 어떤 효과를 사용하나?</h4>
+                <ul>
+                    <li><strong>ATE:</strong> 정책을 모든 사람에게 적용할 때 (예: 전 국민 예방접종)</li>
+                    <li><strong>ATT:</strong> 이미 프로그램에 참여한 사람들의 효과 평가</li>
+                    <li><strong>ATU:</strong> 프로그램을 확장할 때의 예상 효과</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="interactive-box" id="interactive">
+            <h3>🔬 Interactive 데모: 잠재적 결과 시뮬레이션</h3>
+            <p>다양한 처치 효과 시나리오를 시뮬레이션해보세요.</p>
+
+            <div class="simulation-container">
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="treatment-effect">평균 처치 효과 (ATE): <span id="ate-value">-10</span></label>
+                        <input type="range" id="treatment-effect" min="-30" max="30" step="5" value="-10">
+                    </div>
+                    <div class="control-group">
+                        <label for="heterogeneity">효과 이질성: <span id="het-value">10</span></label>
+                        <input type="range" id="heterogeneity" min="0" max="30" step="5" value="10">
+                    </div>
+                    <div class="control-group">
+                        <label for="sample-size-po">샘플 크기: <span id="sample-value-po">50</span></label>
+                        <input type="range" id="sample-size-po" min="20" max="200" step="10" value="50">
+                    </div>
+                    <div class="control-group">
+                        <button class="btn" onclick="runPotentialOutcomesSimulation()">시뮬레이션 실행</button>
+                    </div>
+                </div>
+
+                <div id="po-visualization"></div>
+
+                <div class="output-display" id="po-results">
+                    <p><strong>결과:</strong></p>
+                    <div id="po-stats"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🔑 SUTVA: 안정적 단위 처치 값 가정</h2>
+
+            <p>
+                <strong>SUTVA (Stable Unit Treatment Value Assumption)</strong>는
+                잠재적 결과 프레임워크의 핵심 가정입니다.
+            </p>
+
+            <h3>SUTVA의 두 가지 요소</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>1. 간섭 없음 (No Interference)</h4>
+                    <p>
+                        한 개체의 잠재적 결과가 다른 개체의 처치 배정에 영향받지 않음
+                    </p>
+                    <div class="equation" style="margin-top: 1rem;">
+                        Y<sub>i</sub>(T<sub>1</sub>, T<sub>2</sub>, ..., T<sub>n</sub>) = Y<sub>i</sub>(T<sub>i</sub>)
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h4>2. 처치 버전 단일성</h4>
+                    <p>
+                        처치의 여러 버전이나 강도가 존재하지 않음
+                    </p>
+                    <p style="margin-top: 1rem;">
+                        예: "교육"이 온라인/오프라인 등 다양한 형태로 존재하면 위배
+                    </p>
+                </div>
+            </div>
+
+            <h3>SUTVA 위배 사례</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>상황</th>
+                        <th>SUTVA 위배 여부</th>
+                        <th>이유</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>백신 접종 (집단 면역)</td>
+                        <td style="color: #e74c3c;">위배</td>
+                        <td>내가 접종 안해도 다른 사람들이 접종하면 나에게 영향</td>
+                    </tr>
+                    <tr>
+                        <td>교실 내 학생 지원</td>
+                        <td style="color: #e74c3c;">위배</td>
+                        <td>같은 반 친구가 지원받으면 나에게도 영향</td>
+                    </tr>
+                    <tr>
+                        <td>소셜 미디어 광고</td>
+                        <td style="color: #e74c3c;">위배</td>
+                        <td>친구가 광고를 보고 공유하면 나에게도 영향</td>
+                    </tr>
+                    <tr>
+                        <td>개별 약물 처방</td>
+                        <td style="color: #27ae60;">만족</td>
+                        <td>내 약 복용이 다른 사람에게 영향 없음</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box warning">
+                <h4>⚠️ SUTVA가 위배되면?</h4>
+                <ul>
+                    <li>표준 인과추론 방법론이 적용되지 않을 수 있음</li>
+                    <li>네트워크 효과나 파급효과를 고려한 특수한 방법론 필요</li>
+                    <li>Interference 모델링이나 Spillover 효과 분석 필요</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📐 잠재적 결과와 관찰 데이터의 관계</h2>
+
+            <p>실제로 우리가 관찰하는 것:</p>
+
+            <div class="equation">
+                <p>Y<sub>i</sub><sup>obs</sup> = T<sub>i</sub> · Y<sub>i</sub>(1) + (1 - T<sub>i</sub>) · Y<sub>i</sub>(0)</p>
+            </div>
+
+            <p>관찰된 평균 차이:</p>
+
+            <div class="equation">
+                <p>E[Y | T=1] - E[Y | T=0]</p>
+            </div>
+
+            <p>이것이 ATE와 같으려면:</p>
+
+            <div class="equation">
+                <p style="background: #fff3cd; padding: 1rem; border-radius: 5px;">
+                    <strong>무작위 배정 (Randomization)이 필요!</strong><br>
+                    또는 조건부 독립성 (Conditional Independence)
+                </p>
+            </div>
+
+            <h3>선택 편향 (Selection Bias)</h3>
+
+            <p>무작위 배정이 없으면:</p>
+
+            <div class="equation">
+                <p>E[Y | T=1] - E[Y | T=0] = ATE + Selection Bias</p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    Selection Bias = E[Y(0) | T=1] - E[Y(0) | T=0]
+                </p>
+            </div>
+
+            <p>
+                선택 편향은 처치를 받은 그룹과 받지 않은 그룹이 원래부터 달랐을 때 발생합니다.
+            </p>
+        </div>
+
+        <div class="content-section" id="quiz">
+            <h2>📝 퀴즈: 학습 내용 확인</h2>
+
+            <div class="quiz-container">
+                <div class="question">
+                    <h4>Q1. 잠재적 결과 Y<sub>i</sub>(1)은 무엇을 의미하나?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 개체 i가 실제로 관찰한 결과
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 개체 i가 처치를 받았을 때의 잠재적 결과
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 개체 i가 처치를 받지 않았을 때의 결과
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 모든 개체의 평균 결과
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        Y<sub>i</sub>(1)은 개체 i가 처치를 받았을 때 나타날 잠재적 결과입니다.
+                        실제로 처치를 받지 않았더라도 이 값은 (관찰할 수는 없지만) 존재합니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q2. ATE와 ATT의 차이는?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 같은 개념이다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. ATE는 전체 모집단, ATT는 처치를 받은 그룹의 평균 효과
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. ATE는 이론적, ATT는 실제 관찰값
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. ATE가 항상 ATT보다 크다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        ATE는 전체 모집단의 평균 처치 효과이고, ATT는 실제로 처치를 받은 사람들에 대한 평균 효과입니다.
+                        처치 효과가 이질적이면 둘이 다를 수 있습니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q3. SUTVA의 "간섭 없음" 가정이 위배되는 경우는?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 개인별로 약물 용량이 다름
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 백신 접종으로 인한 집단 면역 효과
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 개인의 건강 상태가 다름
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 측정 오차가 존재함
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        백신 접종은 다른 사람의 감염 위험에도 영향을 미치므로 간섭이 존재합니다.
+                        한 사람의 잠재적 결과가 다른 사람의 처치에 의존하게 됩니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q4. 개별 처치 효과(ITE)를 관찰할 수 없는 이유는?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 데이터가 부족해서
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 한 개체에서 처치와 비처치를 동시에 관찰할 수 없어서
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 통계적 방법이 부족해서
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 측정 도구가 부정확해서
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        이것이 바로 "인과추론의 근본 문제"입니다. 한 개체는 특정 시점에
+                        처치를 받거나 받지 않거나 둘 중 하나만 가능하므로, Y(1)과 Y(0)을 동시에 관찰할 수 없습니다.
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="markChapterComplete(3)" style="margin-top: 2rem;">
+                ✓ Chapter 3 완료하기
+            </button>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 다음 단계</h2>
+            <p>
+                잠재적 결과 프레임워크를 이해했다면, 이제 인과관계를 그래프로 표현하는
+                DAG(Directed Acyclic Graphs)를 배워봅시다. DAG는 복잡한 인과 구조를
+                시각적으로 이해하는 강력한 도구입니다.
+            </p>
+
+            <div class="chapter-nav">
+                <a href="02-correlation-vs-causation.html" class="btn">← Chapter 2</a>
+                <a href="04-dag-basics.html" class="btn btn-success">Chapter 4: DAG 기초 →</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Causal Inference 학습 가이드</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script>
+        // Potential Outcomes Simulation
+        function runPotentialOutcomesSimulation() {
+            const ate = parseFloat(document.getElementById('treatment-effect').value);
+            const heterogeneity = parseFloat(document.getElementById('heterogeneity').value);
+            const n = parseInt(document.getElementById('sample-size-po').value);
+
+            const simulator = new TreatmentEffectSimulator();
+
+            // Generate individual treatment effects with heterogeneity
+            const data = [];
+            for (let i = 0; i < n; i++) {
+                const baseline = 100 + Math.random() * 40;
+                const individualEffect = ate + (Math.random() - 0.5) * heterogeneity;
+                const treatment = Math.random() < 0.5 ? 1 : 0;
+
+                const y0 = baseline;
+                const y1 = baseline + individualEffect;
+                const yobs = treatment === 1 ? y1 : y0;
+
+                data.push({
+                    id: i + 1,
+                    treatment,
+                    y0,
+                    y1,
+                    yobs,
+                    ite: individualEffect
+                });
+            }
+
+            // Calculate statistics
+            const treated = data.filter(d => d.treatment === 1);
+            const control = data.filter(d => d.treatment === 0);
+
+            const avgTreated = treated.reduce((sum, d) => sum + d.yobs, 0) / treated.length;
+            const avgControl = control.reduce((sum, d) => sum + d.yobs, 0) / control.length;
+            const observedDiff = avgTreated - avgControl;
+
+            const trueATE = data.reduce((sum, d) => sum + d.ite, 0) / data.length;
+
+            // Visualize
+            visualizePotentialOutcomes(data, ate, trueATE, observedDiff);
+
+            // Display results
+            const resultsHTML = `
+                <strong>설정한 평균 처치 효과 (True ATE):</strong> ${ate.toFixed(1)}<br>
+                <strong>시뮬레이션된 True ATE:</strong> ${trueATE.toFixed(2)}<br>
+                <strong>관찰된 차이:</strong> ${observedDiff.toFixed(2)}<br>
+                <strong>선택 편향:</strong> ${(observedDiff - trueATE).toFixed(2)}<br><br>
+
+                <strong>처치군 평균:</strong> ${avgTreated.toFixed(2)} (n=${treated.length})<br>
+                <strong>대조군 평균:</strong> ${avgControl.toFixed(2)} (n=${control.length})<br><br>
+
+                ${Math.abs(observedDiff - trueATE) < 3 ?
+                    '<span style="color: #27ae60;">✓ 무작위 배정 덕분에 선택 편향이 작습니다!</span>' :
+                    '<span style="color: #e74c3c;">⚠️ 우연히 선택 편향이 발생했습니다. (샘플 크기 증가 필요)</span>'}
+            `;
+
+            document.getElementById('po-stats').innerHTML = resultsHTML;
+        }
+
+        function visualizePotentialOutcomes(data, expectedATE, trueATE, observedDiff) {
+            const container = document.getElementById('po-visualization');
+            container.innerHTML = `
+                <canvas id="po-canvas" width="700" height="400"></canvas>
+            `;
+
+            const canvas = document.getElementById('po-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Draw histogram of individual treatment effects
+            const ites = data.map(d => d.ite);
+            const min = Math.min(...ites) - 5;
+            const max = Math.max(...ites) + 5;
+            const bins = 15;
+            const binWidth = (max - min) / bins;
+
+            const histogram = new Array(bins).fill(0);
+            ites.forEach(ite => {
+                const binIndex = Math.min(Math.floor((ite - min) / binWidth), bins - 1);
+                histogram[binIndex]++;
+            });
+
+            const maxCount = Math.max(...histogram);
+
+            // Draw bars
+            const chartWidth = 600;
+            const chartHeight = 300;
+            const offsetX = 70;
+            const offsetY = 50;
+
+            ctx.fillStyle = '#3498db';
+            const barWidth = chartWidth / bins;
+
+            histogram.forEach((count, i) => {
+                const barHeight = (count / maxCount) * chartHeight;
+                const x = offsetX + i * barWidth;
+                const y = offsetY + chartHeight - barHeight;
+
+                ctx.fillRect(x, y, barWidth - 2, barHeight);
+            });
+
+            // Draw axes
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(offsetX, offsetY + chartHeight);
+            ctx.lineTo(offsetX + chartWidth, offsetY + chartHeight);
+            ctx.moveTo(offsetX, offsetY + chartHeight);
+            ctx.lineTo(offsetX, offsetY);
+            ctx.stroke();
+
+            // Draw mean line
+            const meanX = offsetX + ((trueATE - min) / (max - min)) * chartWidth;
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(meanX, offsetY);
+            ctx.lineTo(meanX, offsetY + chartHeight);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Labels
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('개별 처치 효과 (ITE) 분포', 350, 30);
+
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = '12px Arial';
+            ctx.fillText(`평균 = ${trueATE.toFixed(1)}`, meanX, offsetY - 10);
+        }
+
+        // Update value displays
+        document.getElementById('treatment-effect').addEventListener('input', (e) => {
+            document.getElementById('ate-value').textContent = e.target.value;
+        });
+
+        document.getElementById('heterogeneity').addEventListener('input', (e) => {
+            document.getElementById('het-value').textContent = e.target.value;
+        });
+
+        document.getElementById('sample-size-po').addEventListener('input', (e) => {
+            document.getElementById('sample-value-po').textContent = e.target.value;
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            runPotentialOutcomesSimulation();
+        });
+    </script>
+</body>
+</html>

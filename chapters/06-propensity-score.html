@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 6: 성향 점수 방법</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1>🎓 Causal Inference 학습 가이드</h1>
+            <ul class="nav-links">
+                <li><a href="../index.html">홈</a></li>
+                <li><a href="#content">학습내용</a></li>
+                <li><a href="#interactive">실습</a></li>
+                <li><a href="#quiz">퀴즈</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="chapter-header">
+            <span class="badge intermediate">중급 - Chapter 6</span>
+            <h1>성향 점수 방법 (Propensity Score Methods)</h1>
+            <p class="lead">관찰 데이터에서 인과 효과를 추정하는 강력한 도구인 성향 점수의 개념과 활용법을 학습합니다.</p>
+
+            <div class="chapter-nav">
+                <a href="05-rct.html" class="btn">← 이전 챕터</a>
+                <a href="../index.html#intermediate" class="btn btn-success">중급 과정 목록 →</a>
+            </div>
+        </div>
+
+        <div class="content-section" id="content">
+            <h2>📖 학습 목표</h2>
+            <ul>
+                <li>성향 점수(Propensity Score)의 정의와 이론적 근거 이해</li>
+                <li>성향 점수 매칭(Matching) 방법 학습</li>
+                <li>역확률 가중치(IPW) 방법 학습</li>
+                <li>이중 강건 추정(Doubly Robust Estimation) 이해</li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>🎯 성향 점수란?</h2>
+
+            <p>
+                <strong>성향 점수(Propensity Score)</strong>는 주어진 공변량(covariates)을 가진
+                개체가 처치를 받을 확률입니다.
+            </p>
+
+            <div class="equation">
+                <p>e(X) = P(T = 1 | X)</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    X: 공변량(관찰된 교란 변수들)<br>
+                    T: 처치 배정<br>
+                    e(X): 성향 점수
+                </p>
+            </div>
+
+            <div class="info-box note">
+                <h4>💡 핵심 아이디어</h4>
+                <p>
+                    고차원의 공변량 X를 1차원의 성향 점수 e(X)로 요약할 수 있습니다.
+                    성향 점수가 같은 개체들은 관찰된 공변량 측면에서 "유사"하므로,
+                    이들을 비교하면 유사-무작위 실험을 만들 수 있습니다!
+                </p>
+            </div>
+
+            <h3>Rosenbaum-Rubin 정리 (1983)</h3>
+
+            <div class="info-box tip">
+                <h4>✅ 성향 점수의 이론적 근거</h4>
+                <p><strong>정리:</strong> 주어진 공변량 X에 대해 (Y(0), Y(1)) ⊥ T | X 이면,</p>
+                <p>(Y(0), Y(1)) ⊥ T | e(X)</p>
+                <p style="margin-top: 1rem;">
+                    즉, X로 조건화하는 것과 e(X)로 조건화하는 것이 동일한 효과!
+                    복잡한 다차원 문제를 1차원으로 축약할 수 있습니다.
+                </p>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📊 성향 점수 추정</h2>
+
+            <p>실제로는 성향 점수를 알 수 없으므로 데이터로부터 추정해야 합니다.</p>
+
+            <h3>로지스틱 회귀 (가장 일반적)</h3>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>from sklearn.linear_model import LogisticRegression
+
+# 성향 점수 모델 추정
+ps_model = LogisticRegression()
+ps_model.fit(X, treatment)
+
+# 성향 점수 예측
+propensity_scores = ps_model.predict_proba(X)[:, 1]</code></pre>
+            </div>
+
+            <h3>머신러닝 방법</h3>
+
+            <ul>
+                <li><strong>Random Forest:</strong> 비선형 관계 포착</li>
+                <li><strong>Gradient Boosting:</strong> 높은 예측 성능</li>
+                <li><strong>Neural Networks:</strong> 복잡한 패턴 학습</li>
+            </ul>
+
+            <div class="info-box warning">
+                <h4>⚠️ 주의사항</h4>
+                <p>
+                    성향 점수 모델의 목표는 <strong>예측이 아니라 균형(balance)</strong>입니다.
+                    모델 선택 시 예측 정확도보다는 공변량 균형을 우선시해야 합니다.
+                </p>
+            </div>
+        </div>
+
+        <div class="interactive-box" id="interactive">
+            <h3>🔬 Interactive 데모: 성향 점수 매칭</h3>
+            <p>성향 점수 매칭이 어떻게 처치군과 대조군을 균형있게 만드는지 시뮬레이션해봅시다.</p>
+
+            <div class="simulation-container">
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="confounding-strength">교란 강도: <span id="conf-str-value">0.7</span></label>
+                        <input type="range" id="confounding-strength" min="0" max="1" step="0.1" value="0.7">
+                    </div>
+                    <div class="control-group">
+                        <label>
+                            <input type="checkbox" id="apply-matching" onchange="runPSMatching()">
+                            성향 점수 매칭 적용
+                        </label>
+                    </div>
+                    <div class="control-group">
+                        <button class="btn" onclick="runPSMatching()">시뮬레이션 실행</button>
+                    </div>
+                </div>
+
+                <div id="ps-visualization"></div>
+
+                <div class="output-display" id="ps-results"></div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🔧 성향 점수 활용 방법</h2>
+
+            <h3>1. 매칭 (Matching)</h3>
+
+            <p>
+                성향 점수가 유사한 처치군과 대조군 개체를 짝지어 비교합니다.
+            </p>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>1:1 최근접 매칭</h4>
+                    <p>각 처치 개체에 가장 가까운 대조 개체 하나를 매칭</p>
+                    <div class="code-block">
+                        <pre><code>for each treated unit:
+    find nearest control
+    create matched pair</code></pre>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h4>캘리퍼 매칭</h4>
+                    <p>일정 거리(캘리퍼) 내의 개체만 매칭</p>
+                    <p style="margin-top: 1rem; font-size: 0.9rem;">
+                        <strong>장점:</strong> 나쁜 매칭 방지
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h4>K:1 매칭</h4>
+                    <p>각 처치 개체에 K개의 대조 개체를 매칭</p>
+                    <p style="margin-top: 1rem; font-size: 0.9rem;">
+                        <strong>장점:</strong> 분산 감소
+                    </p>
+                </div>
+            </div>
+
+            <h3>2. 역확률 가중치 (Inverse Probability Weighting, IPW)</h3>
+
+            <p>
+                성향 점수의 역수로 가중치를 부여하여 유사-모집단(pseudo-population)을 만듭니다.
+            </p>
+
+            <div class="equation">
+                <p><strong>가중치:</strong></p>
+                <p>w<sub>i</sub> = T<sub>i</sub> / e(X<sub>i</sub>) + (1 - T<sub>i</sub>) / (1 - e(X<sub>i</sub>))</p>
+            </div>
+
+            <div class="equation">
+                <p><strong>ATE 추정:</strong></p>
+                <p>τ̂<sub>IPW</sub> = (1/n) Σ[w<sub>i</sub> × T<sub>i</sub> × Y<sub>i</sub>] - (1/n) Σ[w<sub>i</sub> × (1-T<sub>i</sub>) × Y<sub>i</sub>]</p>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code># IPW 추정
+weights = treatment / ps + (1 - treatment) / (1 - ps)
+
+weighted_treated = np.sum(weights * treatment * outcome)
+weighted_control = np.sum(weights * (1 - treatment) * outcome)
+
+ATE_IPW = weighted_treated / np.sum(treatment) - \
+          weighted_control / np.sum(1 - treatment)</code></pre>
+            </div>
+
+            <h3>3. 층화 (Stratification)</h3>
+
+            <p>
+                성향 점수를 기준으로 개체들을 여러 층으로 나눈 후, 각 층 내에서 처치 효과를 추정합니다.
+            </p>
+
+            <div class="info-box tip">
+                <h4>💡 Rosenbaum & Rubin의 발견</h4>
+                <p>
+                    성향 점수를 기준으로 5개 층으로 나누면 공변량 편향의 90% 이상을 제거할 수 있습니다.
+                </p>
+            </div>
+
+            <h3>4. 공변량 조정 (Covariate Adjustment)</h3>
+
+            <p>
+                회귀 모델에 성향 점수를 포함시킵니다.
+            </p>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code># 성향 점수로 조정된 회귀
+model = sm.OLS(outcome, sm.add_constant(
+    pd.DataFrame({
+        'treatment': treatment,
+        'ps': propensity_scores
+    })
+))
+results = model.fit()</code></pre>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🛡️ 이중 강건 추정 (Doubly Robust Estimation)</h2>
+
+            <p>
+                성향 점수 모델과 결과 모델을 모두 사용하는 방법입니다.
+                <strong>둘 중 하나만 올바르게 명시되어도</strong> 일치 추정량을 얻을 수 있습니다!
+            </p>
+
+            <div class="equation">
+                <p><strong>DR 추정량:</strong></p>
+                <p style="font-size: 0.9rem;">
+                    τ̂<sub>DR</sub> = (1/n) Σ[<br>
+                    &nbsp;&nbsp;(T<sub>i</sub>/e(X<sub>i</sub>)) × (Y<sub>i</sub> - μ̂<sub>1</sub>(X<sub>i</sub>)) + μ̂<sub>1</sub>(X<sub>i</sub>)<br>
+                    &nbsp;&nbsp;- ((1-T<sub>i</sub>)/(1-e(X<sub>i</sub>))) × (Y<sub>i</sub> - μ̂<sub>0</sub>(X<sub>i</sub>)) - μ̂<sub>0</sub>(X<sub>i</sub>)<br>
+                    ]
+                </p>
+            </div>
+
+            <div class="info-box note">
+                <h4>💡 이중 보호 (Double Protection)</h4>
+                <ul>
+                    <li>성향 점수 모델이 맞고 결과 모델이 틀려도 OK</li>
+                    <li>결과 모델이 맞고 성향 점수 모델이 틀려도 OK</li>
+                    <li>둘 다 틀리면... 문제 발생</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>✅ 균형 진단 (Balance Diagnostics)</h2>
+
+            <p>
+                성향 점수 방법의 성공 여부는 공변량 균형으로 평가합니다.
+            </p>
+
+            <h3>표준화 평균 차이 (Standardized Mean Difference, SMD)</h3>
+
+            <div class="equation">
+                <p>SMD = (X̄<sub>treated</sub> - X̄<sub>control</sub>) / √((s²<sub>treated</sub> + s²<sub>control</sub>)/2)</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    일반적으로 |SMD| < 0.1이면 좋은 균형으로 간주
+                </p>
+            </div>
+
+            <h3>Love Plot</h3>
+
+            <p>
+                매칭 전후의 SMD를 시각화하여 균형 개선을 확인합니다.
+            </p>
+
+            <div class="info-box tip">
+                <h4>✅ 균형 검사 체크리스트</h4>
+                <ul>
+                    <li>모든 공변량의 SMD < 0.1</li>
+                    <li>처치군과 대조군의 성향 점수 분포 겹침 확인</li>
+                    <li>극단적 가중치(extreme weights) 확인</li>
+                    <li>샘플 크기 충분성 확인</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-section" id="quiz">
+            <h2>📝 퀴즈: 학습 내용 확인</h2>
+
+            <div class="quiz-container">
+                <div class="question">
+                    <h4>Q1. 성향 점수의 정의는?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 처치의 효과를 받을 확률
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 주어진 공변량을 가진 개체가 처치를 받을 확률
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 결과 변수의 기댓값
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 교란 변수의 영향력
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        성향 점수 e(X) = P(T=1|X)는 관찰된 공변량 X를 가진 개체가
+                        처치를 받을 조건부 확률입니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q2. 이중 강건 추정의 장점은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 항상 정확한 추정값을 제공한다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 성향 점수 모델과 결과 모델 중 하나만 맞아도 일치 추정량을 제공한다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 계산이 가장 간단하다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 모든 가정이 필요 없다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        이중 강건 추정은 두 모델 중 하나만 올바르게 명시되어도
+                        일치 추정량(consistent estimator)을 제공하는 "이중 보호" 특성이 있습니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q3. 성향 점수 매칭 후 가장 중요한 검사는?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. R-squared 검사
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 공변량 균형 검사
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 정규성 검사
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 다중공선성 검사
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        성향 점수 방법의 핵심은 처치군과 대조군 사이의 공변량 균형을 달성하는 것입니다.
+                        표준화 평균 차이(SMD) 등으로 균형을 반드시 확인해야 합니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q4. IPW에서 극단적 가중치가 발생하는 경우는?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 샘플 크기가 클 때
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 성향 점수가 0이나 1에 가까울 때
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 처치 효과가 클 때
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 공변량이 많을 때
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        성향 점수가 0이나 1에 가까우면 가중치 1/e(X) 또는 1/(1-e(X))가 매우 커져
+                        극단적 가중치가 발생합니다. 이는 추정의 불안정성을 야기할 수 있습니다.
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="markChapterComplete(6)" style="margin-top: 2rem;">
+                ✓ Chapter 6 완료하기
+            </button>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 다음 단계</h2>
+            <p>
+                성향 점수 방법을 학습했다면, 다른 매칭 방법들과 도구 변수, 회귀 불연속 설계 등
+                다양한 인과추론 방법론을 계속 학습하세요.
+            </p>
+
+            <div class="chapter-nav">
+                <a href="05-rct.html" class="btn">← Chapter 5</a>
+                <a href="../index.html#intermediate" class="btn btn-success">중급 과정 목록 →</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Causal Inference 학습 가이드</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script>
+        // Propensity Score Matching Simulation
+        function runPSMatching() {
+            const confStrength = parseFloat(document.getElementById('confounding-strength').value);
+            const applyMatching = document.getElementById('apply-matching').checked;
+            const n = 300;
+
+            // Generate data
+            const data = [];
+            for (let i = 0; i < n; i++) {
+                const covariate = Math.random();
+                const ps = 0.2 + confStrength * covariate;
+                const treatment = Math.random() < ps ? 1 : 0;
+                const y0 = 50 + 30 * covariate + Math.random() * 10;
+                const y1 = y0 + 15; // True effect = 15
+                const outcome = treatment ? y1 : y0;
+
+                data.push({ covariate, ps, treatment, outcome, y0, y1 });
+            }
+
+            let analyzedData = data;
+
+            if (applyMatching) {
+                // Simple 1:1 nearest neighbor matching
+                const treated = data.filter(d => d.treatment === 1);
+                const control = data.filter(d => d.treatment === 0);
+
+                const matched = [];
+                treated.forEach(t => {
+                    // Find nearest control
+                    let minDist = Infinity;
+                    let bestMatch = null;
+
+                    control.forEach(c => {
+                        const dist = Math.abs(t.ps - c.ps);
+                        if (dist < minDist && !matched.some(m => m.id === c.id)) {
+                            minDist = dist;
+                            bestMatch = c;
+                        }
+                    });
+
+                    if (bestMatch && minDist < 0.1) { // Caliper
+                        matched.push(t, bestMatch);
+                    }
+                });
+
+                analyzedData = matched;
+            }
+
+            // Calculate results
+            const treated = analyzedData.filter(d => d.treatment === 1);
+            const control = analyzedData.filter(d => d.treatment === 0);
+
+            const avgTreated = treated.reduce((sum, d) => sum + d.outcome, 0) / treated.length;
+            const avgControl = control.reduce((sum, d) => sum + d.outcome, 0) / control.length;
+            const estimatedEffect = avgTreated - avgControl;
+
+            // Check covariate balance
+            const covTreated = treated.reduce((sum, d) => sum + d.covariate, 0) / treated.length;
+            const covControl = control.reduce((sum, d) => sum + d.covariate, 0) / control.length;
+            const covDiff = Math.abs(covTreated - covControl);
+
+            // Visualize
+            visualizePS(analyzedData, applyMatching);
+
+            // Display results
+            const resultsHTML = `
+                <strong>실제 처치 효과:</strong> 15<br>
+                <strong>추정된 효과:</strong> ${estimatedEffect.toFixed(2)}<br>
+                <strong>추정 오차:</strong> ${Math.abs(estimatedEffect - 15).toFixed(2)}<br><br>
+
+                <strong>공변량 균형:</strong><br>
+                처치군 평균: ${covTreated.toFixed(3)}<br>
+                대조군 평균: ${covControl.toFixed(3)}<br>
+                차이: ${covDiff.toFixed(3)}<br><br>
+
+                <strong>샘플 크기:</strong><br>
+                처치군: ${treated.length}<br>
+                대조군: ${control.length}<br><br>
+
+                ${applyMatching ?
+                    (covDiff < 0.05 ?
+                        '<span style="color: #27ae60;">✓ 매칭 후 공변량이 잘 균형을 이루었습니다!</span>' :
+                        '<span style="color: #f39c12;">⚠️ 일부 불균형이 남아있을 수 있습니다.</span>') :
+                    '<span style="color: #e74c3c;">⚠️ 매칭 없이는 교란으로 인한 편향이 있습니다!</span>'}
+            `;
+
+            document.getElementById('ps-results').innerHTML = resultsHTML;
+        }
+
+        function visualizePS(data, isMatched) {
+            const container = document.getElementById('ps-visualization');
+            container.innerHTML = '<canvas id="ps-canvas" width="700" height="400"></canvas>';
+
+            const canvas = document.getElementById('ps-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Plot propensity scores
+            const treated = data.filter(d => d.treatment === 1);
+            const control = data.filter(d => d.treatment === 0);
+
+            // Draw distributions
+            ctx.fillStyle = '#3498db';
+            treated.forEach(d => {
+                const x = 50 + d.ps * 600;
+                const y = 350 - Math.random() * 100;
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.fillStyle = '#e74c3c';
+            control.forEach(d => {
+                const x = 50 + d.ps * 600;
+                const y = 150 + Math.random() * 100;
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Axes and labels
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(50, 200);
+            ctx.lineTo(650, 200);
+            ctx.stroke();
+
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Propensity Score', 350, 390);
+            ctx.fillText('Treatment Group', 350, 330);
+            ctx.fillText('Control Group', 350, 130);
+
+            ctx.fillStyle = '#3498db';
+            ctx.fillText('●', 100, 330);
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillText('●', 100, 130);
+        }
+
+        // Update value display
+        document.getElementById('confounding-strength').addEventListener('input', (e) => {
+            document.getElementById('conf-str-value').textContent = e.target.value;
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            runPSMatching();
+        });
+    </script>
+</body>
+</html>

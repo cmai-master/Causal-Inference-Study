@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: 상관관계 vs 인과관계</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1>🎓 Causal Inference 학습 가이드</h1>
+            <ul class="nav-links">
+                <li><a href="../index.html">홈</a></li>
+                <li><a href="#content">학습내용</a></li>
+                <li><a href="#interactive">실습</a></li>
+                <li><a href="#quiz">퀴즈</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="chapter-header">
+            <span class="badge beginner">입문 - Chapter 2</span>
+            <h1>상관관계 vs 인과관계 (Correlation vs Causation)</h1>
+            <p class="lead">상관관계와 인과관계의 차이를 명확히 이해하고, Simpson's Paradox와 교란 변수의 중요성을 학습합니다.</p>
+
+            <div class="chapter-nav">
+                <a href="01-introduction.html" class="btn">← 이전 챕터</a>
+                <a href="03-potential-outcomes.html" class="btn btn-success">다음 챕터 →</a>
+            </div>
+        </div>
+
+        <div class="content-section" id="content">
+            <h2>📖 학습 목표</h2>
+            <ul>
+                <li>상관관계(Correlation)와 인과관계(Causation)의 정확한 정의 이해</li>
+                <li>교란 변수(Confounding Variables)의 역할 파악</li>
+                <li>Simpson's Paradox 현상 이해 및 해석</li>
+                <li>허위 상관(Spurious Correlation)의 사례 분석</li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>🔍 상관관계 (Correlation)</h2>
+
+            <p>
+                <strong>상관관계</strong>는 두 변수가 함께 움직이는 정도를 나타냅니다.
+                한 변수가 증가할 때 다른 변수도 증가하면 양의 상관관계, 감소하면 음의 상관관계가 있다고 합니다.
+            </p>
+
+            <div class="equation">
+                <p><strong>피어슨 상관계수 (Pearson Correlation Coefficient):</strong></p>
+                <p>r = Cov(X, Y) / (σ_X × σ_Y)</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    범위: -1 ≤ r ≤ 1<br>
+                    r = 1: 완벽한 양의 상관관계<br>
+                    r = 0: 상관관계 없음<br>
+                    r = -1: 완벽한 음의 상관관계
+                </p>
+            </div>
+
+            <div class="info-box warning">
+                <h4>⚠️ 중요한 원칙</h4>
+                <p style="font-size: 1.2rem; font-weight: bold;">
+                    "Correlation does not imply causation"
+                </p>
+                <p>
+                    상관관계가 있다고 해서 반드시 인과관계가 있는 것은 아닙니다.
+                    이는 통계학과 데이터 과학에서 가장 중요한 원칙 중 하나입니다.
+                </p>
+            </div>
+
+            <h3>🎭 허위 상관의 재미있는 예시</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>🍦 아이스크림과 익사 사고</h4>
+                    <p><strong>관찰:</strong> 아이스크림 판매량이 증가하면 익사 사고도 증가</p>
+                    <p><strong>해석:</strong> 아이스크림이 익사를 유발? ❌</p>
+                    <p><strong>진실:</strong> 날씨(교란 변수)가 둘 다에 영향</p>
+                </div>
+
+                <div class="card">
+                    <h4>🏴‍☠️ 해적과 지구 온난화</h4>
+                    <p><strong>관찰:</strong> 해적 수가 감소하면서 지구 온도 상승</p>
+                    <p><strong>해석:</strong> 해적이 지구를 시원하게? ❌</p>
+                    <p><strong>진실:</strong> 단순한 시간적 동시 발생</p>
+                </div>
+
+                <div class="card">
+                    <h4>🧀 치즈와 침대 사망</h4>
+                    <p><strong>관찰:</strong> 1인당 치즈 소비량과 침대 시트에 얽혀 죽는 사고의 상관관계</p>
+                    <p><strong>해석:</strong> 치즈가 위험? ❌</p>
+                    <p><strong>진실:</strong> 우연의 일치</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="interactive-box" id="interactive">
+            <h3>🔬 Interactive 데모: 교란 변수의 영향</h3>
+            <p>교란 변수가 어떻게 상관관계를 만들어낼 수 있는지 시뮬레이션해봅시다.</p>
+
+            <div class="simulation-container">
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="confounder-strength">교란 변수의 영향력: <span id="conf-value">0.8</span></label>
+                        <input type="range" id="confounder-strength" min="0" max="1" step="0.1" value="0.8">
+                    </div>
+                    <div class="control-group">
+                        <label for="causal-effect">실제 인과 효과: <span id="causal-value">0.2</span></label>
+                        <input type="range" id="causal-effect" min="0" max="1" step="0.1" value="0.2">
+                    </div>
+                    <div class="control-group">
+                        <button class="btn" onclick="runConfoundingSimulation()">시뮬레이션 실행</button>
+                    </div>
+                </div>
+
+                <div id="confounding-plot"></div>
+
+                <div class="output-display" id="confounding-results">
+                    <p><strong>결과:</strong></p>
+                    <p id="confounding-interpretation">시뮬레이션을 실행하여 결과를 확인하세요.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🎨 Simpson's Paradox</h2>
+
+            <p>
+                <strong>Simpson's Paradox</strong>는 전체 데이터에서 관찰되는 경향이
+                데이터를 그룹으로 나누었을 때 역전되는 놀라운 현상입니다.
+            </p>
+
+            <h3>실제 사례: UC Berkeley 입학 성차별 사건 (1973)</h3>
+
+            <div class="info-box note">
+                <h4>📊 사건 개요</h4>
+                <p>
+                    UC Berkeley 대학원 입학에서 남성 지원자의 합격률이 여성보다 높아
+                    성차별 소송이 제기되었습니다.
+                </p>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>성별</th>
+                        <th>지원자</th>
+                        <th>합격자</th>
+                        <th>합격률</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>남성</td>
+                        <td>8,442</td>
+                        <td>3,738</td>
+                        <td>44%</td>
+                    </tr>
+                    <tr>
+                        <td>여성</td>
+                        <td>4,321</td>
+                        <td>1,494</td>
+                        <td>35%</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="margin-top: 1rem;">
+                전체적으로 보면 남성의 합격률이 9% 더 높습니다. 하지만...
+            </p>
+
+            <h4>학과별로 분석하면?</h4>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>학과</th>
+                        <th>남성 합격률</th>
+                        <th>여성 합격률</th>
+                        <th>비고</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>학과 A</td>
+                        <td>62%</td>
+                        <td>82%</td>
+                        <td>여성이 더 높음!</td>
+                    </tr>
+                    <tr>
+                        <td>학과 B</td>
+                        <td>63%</td>
+                        <td>68%</td>
+                        <td>여성이 더 높음!</td>
+                    </tr>
+                    <tr>
+                        <td>학과 C</td>
+                        <td>37%</td>
+                        <td>34%</td>
+                        <td>남성이 약간 높음</td>
+                    </tr>
+                    <tr>
+                        <td>학과 D</td>
+                        <td>33%</td>
+                        <td>35%</td>
+                        <td>여성이 약간 높음</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box tip">
+                <h4>💡 해석</h4>
+                <p>
+                    대부분의 학과에서 여성의 합격률이 남성보다 높거나 비슷했습니다!
+                    문제는 여성들이 합격률이 낮은 학과에 더 많이 지원했다는 것입니다.
+                </p>
+                <p>
+                    <strong>교란 변수:</strong> 지원 학과<br>
+                    <strong>결론:</strong> 성차별이 아니라 학과 선택의 차이
+                </p>
+            </div>
+        </div>
+
+        <div class="interactive-box">
+            <h3>🎮 Interactive 데모: Simpson's Paradox 체험</h3>
+            <p>직접 Simpson's Paradox를 만들어보세요!</p>
+
+            <div class="simulation-container">
+                <div class="controls">
+                    <div class="control-group">
+                        <label>시나리오 선택:</label>
+                        <select id="paradox-scenario" onchange="updateParadoxVisualization()">
+                            <option value="berkeley">UC Berkeley 입학</option>
+                            <option value="treatment">치료 효과</option>
+                            <option value="batting">야구 타율</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="paradox-viz"></div>
+
+                <div class="output-display">
+                    <div id="paradox-explanation"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🎯 교란 변수 (Confounding Variables)</h2>
+
+            <p>
+                <strong>교란 변수</strong>는 처치(원인)와 결과 모두에 영향을 미치는 변수로,
+                인과관계를 왜곡시킬 수 있습니다.
+            </p>
+
+            <h3>교란 변수의 구조</h3>
+
+            <div class="simulation-container">
+                <div id="dag-confounder"></div>
+                <p style="text-align: center; margin-top: 1rem;">
+                    <strong>교란 구조:</strong> C (교란변수) → T (처치) 그리고 C → Y (결과)
+                </p>
+            </div>
+
+            <div class="info-box warning">
+                <h4>⚠️ 교란 변수를 다루지 않으면...</h4>
+                <ul>
+                    <li>인과 효과를 과대평가하거나 과소평가할 수 있음</li>
+                    <li>인과관계의 방향을 잘못 판단할 수 있음</li>
+                    <li>존재하지 않는 인과관계를 발견할 수 있음</li>
+                </ul>
+            </div>
+
+            <h3>교란 변수의 실제 예시</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>운동과 건강</h4>
+                    <p><strong>처치:</strong> 운동</p>
+                    <p><strong>결과:</strong> 건강 상태</p>
+                    <p><strong>교란:</strong> 나이, 소득, 교육 수준</p>
+                    <p class="info-box note" style="margin-top: 1rem; padding: 0.5rem;">
+                        젊고 부유한 사람들이 운동을 더 많이 하고 건강도 좋을 수 있음
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h4>커피와 심장병</h4>
+                    <p><strong>처치:</strong> 커피 섭취</p>
+                    <p><strong>결과:</strong> 심장병 위험</p>
+                    <p><strong>교란:</strong> 흡연</p>
+                    <p class="info-box note" style="margin-top: 1rem; padding: 0.5rem;">
+                        흡연자들이 커피를 더 많이 마시는 경향
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h4>교육과 소득</h4>
+                    <p><strong>처치:</strong> 교육 수준</p>
+                    <p><strong>결과:</strong> 소득</p>
+                    <p><strong>교란:</strong> 부모의 SES, 지능</p>
+                    <p class="info-box note" style="margin-top: 1rem; padding: 0.5rem;">
+                        부유한 가정의 자녀가 더 많은 교육을 받고 소득도 높을 수 있음
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🛡️ 교란 변수 통제 방법</h2>
+
+            <ol>
+                <li>
+                    <strong>무작위 대조 실험 (RCT)</strong>
+                    <p>무작위 배정으로 모든 교란 변수를 균형있게 분포시킴 (가장 강력한 방법)</p>
+                </li>
+                <li>
+                    <strong>회귀 분석 조정</strong>
+                    <p>교란 변수를 회귀 모델에 포함하여 통제</p>
+                </li>
+                <li>
+                    <strong>층화 (Stratification)</strong>
+                    <p>교란 변수의 수준별로 데이터를 나누어 분석</p>
+                </li>
+                <li>
+                    <strong>매칭 (Matching)</strong>
+                    <p>교란 변수가 유사한 처치군과 대조군을 비교</p>
+                </li>
+                <li>
+                    <strong>도구 변수 (Instrumental Variables)</strong>
+                    <p>처치에는 영향을 주지만 결과에는 직접 영향을 주지 않는 변수 활용</p>
+                </li>
+            </ol>
+        </div>
+
+        <div class="content-section" id="quiz">
+            <h2>📝 퀴즈: 학습 내용 확인</h2>
+
+            <div class="quiz-container">
+                <div class="question">
+                    <h4>Q1. Simpson's Paradox는 무엇인가?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 상관관계가 매우 강할 때 발생하는 현상
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 전체 데이터의 경향이 부분 그룹에서 역전되는 현상
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 인과관계가 순환하는 현상
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 데이터가 정규분포를 따르지 않는 현상
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        Simpson's Paradox는 전체 데이터에서 관찰되는 패턴이 데이터를 그룹으로 나누면
+                        각 그룹에서 역전되거나 사라지는 역설적 현상입니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q2. 다음 중 교란 변수의 조건은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 처치에만 영향을 준다
+                        </div>
+                        <div class="option" data-correct="false">
+                            B. 결과에만 영향을 준다
+                        </div>
+                        <div class="option" data-correct="true">
+                            C. 처치와 결과 모두에 영향을 준다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 처치의 결과로 발생한다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: C</strong><br>
+                        교란 변수는 독립변수(처치)와 종속변수(결과) 모두에 영향을 미치는 변수입니다.
+                        이로 인해 실제로는 인과관계가 없는데도 상관관계가 나타날 수 있습니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q3. "아이스크림 판매량과 익사 사고는 양의 상관관계가 있다"는 관찰에서 가장 가능성 높은 설명은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 아이스크림을 먹으면 수영 능력이 떨어진다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 날씨(기온)가 교란 변수로 작용한다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 익사 사고가 아이스크림 수요를 증가시킨다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 순수한 우연의 일치이다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        더운 날씨(교란 변수)는 아이스크림 판매량과 수영 활동(익사 위험) 모두를 증가시킵니다.
+                        이는 허위 상관(spurious correlation)의 전형적인 예입니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q4. 교란 변수를 통제하는 가장 강력한 방법은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 더 많은 데이터 수집
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 무작위 대조 실험 (RCT)
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 복잡한 통계 모델 사용
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 교란 변수 무시
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        무작위 배정(randomization)은 관찰된 교란 변수뿐만 아니라 관찰되지 않은
+                        교란 변수까지 처치군과 대조군에 균형있게 분포시키므로 가장 강력한 방법입니다.
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="markChapterComplete(2)" style="margin-top: 2rem;">
+                ✓ Chapter 2 완료하기
+            </button>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 다음 단계</h2>
+            <p>
+                상관관계와 인과관계의 차이를 이해했다면, 이제 인과관계를 정량화하는
+                핵심 프레임워크인 "잠재적 결과 프레임워크(Potential Outcomes Framework)"를
+                배워봅시다.
+            </p>
+
+            <div class="chapter-nav">
+                <a href="01-introduction.html" class="btn">← Chapter 1</a>
+                <a href="03-potential-outcomes.html" class="btn btn-success">Chapter 3: 잠재적 결과 →</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Causal Inference 학습 가이드</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script>
+        // Confounding simulation
+        function runConfoundingSimulation() {
+            const confStrength = parseFloat(document.getElementById('confounder-strength').value);
+            const causalEffect = parseFloat(document.getElementById('causal-effect').value);
+
+            const n = 200;
+            const container = document.getElementById('confounding-plot');
+            container.innerHTML = '';
+
+            const plot = new ScatterPlot('confounding-plot');
+
+            // Generate data with confounding
+            plot.points = [];
+            for (let i = 0; i < n; i++) {
+                const confounder = Math.random();
+                const treatment = confounder * confStrength + (1 - confStrength) * Math.random();
+                const outcome = treatment * causalEffect + confounder * confStrength + Math.random() * 0.2;
+
+                plot.points.push({ x: treatment, y: outcome });
+            }
+
+            plot.draw(600, 400);
+
+            // Calculate observed correlation
+            const correlation = calculateCorrelation(plot.points);
+
+            const interpretation = `
+                <strong>관찰된 상관계수:</strong> ${correlation.toFixed(2)}<br>
+                <strong>실제 인과 효과:</strong> ${causalEffect.toFixed(1)}<br>
+                <strong>교란의 영향:</strong> ${confStrength.toFixed(1)}<br><br>
+
+                ${correlation > causalEffect + 0.1 ?
+                    '⚠️ 교란 변수로 인해 인과 효과가 과대평가되고 있습니다!' :
+                    '✓ 관찰된 효과가 실제 인과 효과와 유사합니다.'}
+            `;
+
+            document.getElementById('confounding-interpretation').innerHTML = interpretation;
+        }
+
+        function calculateCorrelation(points) {
+            const n = points.length;
+            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+
+            points.forEach(p => {
+                sumX += p.x;
+                sumY += p.y;
+                sumXY += p.x * p.y;
+                sumX2 += p.x * p.x;
+                sumY2 += p.y * p.y;
+            });
+
+            const num = n * sumXY - sumX * sumY;
+            const den = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+            return num / den;
+        }
+
+        // Update value displays
+        document.getElementById('confounder-strength').addEventListener('input', (e) => {
+            document.getElementById('conf-value').textContent = e.target.value;
+        });
+
+        document.getElementById('causal-effect').addEventListener('input', (e) => {
+            document.getElementById('causal-value').textContent = e.target.value;
+        });
+
+        // Simpson's Paradox visualization
+        function updateParadoxVisualization() {
+            const scenario = document.getElementById('paradox-scenario').value;
+            const container = document.getElementById('paradox-viz');
+            const explanation = document.getElementById('paradox-explanation');
+
+            if (scenario === 'berkeley') {
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                            <h4>전체 데이터</h4>
+                            <p>남성 합격률: 44%</p>
+                            <p>여성 합격률: 35%</p>
+                            <p style="color: #e74c3c; font-weight: bold;">차이: +9% (남성 유리)</p>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                            <h4>학과별 데이터</h4>
+                            <p>학과 A: 여성 82% vs 남성 62%</p>
+                            <p>학과 B: 여성 68% vs 남성 63%</p>
+                            <p style="color: #27ae60; font-weight: bold;">대부분 여성이 유리!</p>
+                        </div>
+                    </div>
+                `;
+                explanation.innerHTML = `
+                    <p><strong>역설의 원인:</strong> 여성들이 합격률이 낮은 학과에 더 많이 지원했습니다.</p>
+                    <p><strong>교훈:</strong> 집단 수준의 분석은 개별 그룹의 패턴을 숨길 수 있습니다.</p>
+                `;
+            } else if (scenario === 'treatment') {
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                            <h4>전체 환자</h4>
+                            <p>치료 받음: 회복률 30%</p>
+                            <p>치료 안받음: 회복률 40%</p>
+                            <p style="color: #e74c3c; font-weight: bold;">치료가 해로워 보임!</p>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                            <h4>중증도별 분석</h4>
+                            <p>경증: 치료 50% vs 비치료 40%</p>
+                            <p>중증: 치료 20% vs 비치료 10%</p>
+                            <p style="color: #27ae60; font-weight: bold;">치료가 도움이 됨!</p>
+                        </div>
+                    </div>
+                `;
+                explanation.innerHTML = `
+                    <p><strong>역설의 원인:</strong> 중증 환자들이 치료를 더 많이 받았습니다.</p>
+                    <p><strong>교훈:</strong> 질병의 중증도가 교란 변수로 작용합니다.</p>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                            <h4>전체 시즌</h4>
+                            <p>선수 A: .265 타율</p>
+                            <p>선수 B: .270 타율</p>
+                            <p style="color: #e74c3c; font-weight: bold;">B가 더 좋아 보임</p>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                            <h4>상반기 vs 하반기</h4>
+                            <p>상반기: A .300 vs B .280</p>
+                            <p>하반기: A .250 vs B .240</p>
+                            <p style="color: #27ae60; font-weight: bold;">A가 양쪽 다 좋음!</p>
+                        </div>
+                    </div>
+                `;
+                explanation.innerHTML = `
+                    <p><strong>역설의 원인:</strong> A가 타율이 낮은 시기에 더 많은 타석을 가졌습니다.</p>
+                    <p><strong>교훈:</strong> 가중치(타석 수)가 중요합니다.</p>
+                `;
+            }
+        }
+
+        // DAG visualization for confounder
+        function initDAG() {
+            const dag = new DAGVisualization('dag-confounder');
+            dag.addNode('C', 'C', 200, 100);
+            dag.addNode('T', 'T', 100, 200);
+            dag.addNode('Y', 'Y', 300, 200);
+
+            dag.addEdge('C', 'T');
+            dag.addEdge('C', 'Y');
+            dag.addEdge('T', 'Y');
+
+            dag.draw(450, 300);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initDAG();
+            updateParadoxVisualization();
+        });
+    </script>
+</body>
+</html>
