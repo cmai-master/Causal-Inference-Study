@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 1: 인과추론 소개</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1>🎓 Causal Inference 학습 가이드</h1>
+            <ul class="nav-links">
+                <li><a href="../index.html">홈</a></li>
+                <li><a href="#content">학습내용</a></li>
+                <li><a href="#interactive">실습</a></li>
+                <li><a href="#quiz">퀴즈</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="chapter-header">
+            <span class="badge beginner">입문 - Chapter 1</span>
+            <h1>인과추론 소개 (Introduction to Causal Inference)</h1>
+            <p class="lead">인과추론의 기본 개념과 중요성을 이해하고, 실제 응용 사례를 살펴봅니다.</p>
+
+            <div class="chapter-nav">
+                <a href="../index.html" class="btn">← 홈으로</a>
+                <a href="02-correlation-vs-causation.html" class="btn btn-success">다음 챕터 →</a>
+            </div>
+        </div>
+
+        <div class="content-section" id="content">
+            <h2>📖 학습 목표</h2>
+            <ul>
+                <li>인과추론(Causal Inference)의 정의와 필요성 이해하기</li>
+                <li>상관관계와 인과관계의 차이점 인식하기</li>
+                <li>실제 사례를 통해 인과추론의 중요성 파악하기</li>
+                <li>인과추론의 핵심 질문 이해하기</li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>🤔 인과추론이란 무엇인가?</h2>
+
+            <p>
+                <strong>인과추론(Causal Inference)</strong>은 데이터로부터 원인과 결과의 관계를 파악하는 통계적 방법론입니다.
+                단순히 "A와 B가 함께 발생한다"는 것을 넘어, "A가 B를 발생시켰는가?"라는 질문에 답하는 학문입니다.
+            </p>
+
+            <div class="info-box note">
+                <h4>💡 핵심 질문</h4>
+                <p><strong>"X가 Y에 미치는 인과적 효과는 무엇인가?"</strong></p>
+                <p>예시:</p>
+                <ul>
+                    <li>새로운 약물이 환자의 회복에 실제로 도움이 되는가?</li>
+                    <li>교육 프로그램이 학생들의 성적을 향상시키는가?</li>
+                    <li>광고 캠페인이 매출 증가를 유발했는가?</li>
+                    <li>정책 변화가 경제 성장에 기여했는가?</li>
+                </ul>
+            </div>
+
+            <h3>왜 인과추론이 중요한가?</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>🏥 의학 및 보건</h4>
+                    <p>치료법의 실제 효과를 평가하고, 부작용을 파악하며, 최적의 치료 전략을 개발합니다.</p>
+                </div>
+
+                <div class="card">
+                    <h4>📊 비즈니스 및 마케팅</h4>
+                    <p>마케팅 캠페인, 가격 전략, 제품 변경이 실제로 매출과 고객 만족도에 미치는 영향을 측정합니다.</p>
+                </div>
+
+                <div class="card">
+                    <h4>🏛️ 공공 정책</h4>
+                    <p>교육, 복지, 경제 정책의 실제 효과를 평가하여 증거 기반 정책 수립을 지원합니다.</p>
+                </div>
+
+                <div class="card">
+                    <h4>🤖 인공지능 및 머신러닝</h4>
+                    <p>예측을 넘어 개입(intervention)의 효과를 이해하고, 더 강건한 모델을 만듭니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🎯 실제 사례: 인과추론의 힘</h2>
+
+            <h3>사례 1: 흡연과 폐암</h3>
+            <p>
+                1950년대에 흡연자들이 비흡연자보다 폐암 발생률이 높다는 <strong>상관관계</strong>가 발견되었습니다.
+                하지만 담배 회사들은 "흡연이 폐암을 유발한다는 인과관계는 증명되지 않았다"고 주장했습니다.
+            </p>
+            <p>
+                과학자들은 다양한 인과추론 방법론을 통해 흡연이 실제로 폐암을 <strong>유발</strong>한다는 것을 입증했고,
+                이는 공중보건 정책의 큰 변화를 가져왔습니다.
+            </p>
+
+            <h3>사례 2: 최저임금 인상의 효과</h3>
+            <p>
+                최저임금을 인상하면 고용이 감소할까요? 단순히 최저임금과 고용률의 상관관계만 보면 오해할 수 있습니다.
+                Card와 Krueger의 유명한 연구(1994)는 <strong>자연실험(Natural Experiment)</strong>을 활용하여,
+                최저임금 인상이 고용에 부정적 영향을 미치지 않았다는 것을 보여주었습니다.
+            </p>
+
+            <h3>사례 3: 온라인 광고의 효과</h3>
+            <p>
+                사용자가 광고를 클릭하고 구매했다면, 광고가 구매를 유발한 것일까요?
+                아니면 어차피 구매할 예정이었던 사용자에게 광고가 표시된 것일까요?
+                인과추론 없이는 광고의 실제 효과(ROI)를 정확히 측정할 수 없습니다.
+            </p>
+        </div>
+
+        <div class="interactive-box" id="interactive">
+            <h3>🔬 Interactive 데모: 상관관계 vs 인과관계</h3>
+            <p>아래 시뮬레이션에서 두 변수 간의 상관관계와 실제 인과관계가 어떻게 다를 수 있는지 확인해보세요.</p>
+
+            <div class="simulation-container">
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="correlation">상관계수 (Correlation): <span id="corr-value">0.7</span></label>
+                        <input type="range" id="correlation" min="0" max="1" step="0.1" value="0.7">
+                    </div>
+                    <div class="control-group">
+                        <label for="sample-size">샘플 크기: <span id="sample-value">100</span></label>
+                        <input type="range" id="sample-size" min="50" max="500" step="50" value="100">
+                    </div>
+                    <div class="control-group">
+                        <button class="btn" onclick="updateScatterPlot()">그래프 업데이트</button>
+                    </div>
+                </div>
+
+                <div id="scatter-plot"></div>
+
+                <div class="output-display">
+                    <p><strong>해석:</strong></p>
+                    <p id="interpretation">상관계수가 0.7일 때, 두 변수는 강한 양의 상관관계를 보입니다. 하지만 이것만으로는 X가 Y를 유발하는지 알 수 없습니다!</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🔑 인과추론의 핵심 개념</h2>
+
+            <div class="info-box tip">
+                <h4>✅ 인과추론의 기본 원칙</h4>
+                <ol>
+                    <li><strong>반사실적 사고 (Counterfactual Thinking):</strong> "만약 처치를 받지 않았다면 어떻게 되었을까?"</li>
+                    <li><strong>처치 효과 (Treatment Effect):</strong> 처치를 받았을 때와 받지 않았을 때의 결과 차이</li>
+                    <li><strong>교란 변수 통제 (Controlling Confounders):</strong> 원인과 결과 모두에 영향을 미치는 제3의 변수</li>
+                    <li><strong>가정의 명확화 (Explicit Assumptions):</strong> 인과추론은 항상 가정에 기반함</li>
+                </ol>
+            </div>
+
+            <h3>인과관계의 조건</h3>
+            <p>Bradford Hill은 인과관계를 판단하기 위한 9가지 기준을 제시했습니다:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>기준</th>
+                        <th>설명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>강도 (Strength)</td>
+                        <td>원인과 결과 사이의 연관성이 강할수록 인과관계 가능성이 높음</td>
+                    </tr>
+                    <tr>
+                        <td>일관성 (Consistency)</td>
+                        <td>다양한 상황과 연구에서 반복적으로 관찰됨</td>
+                    </tr>
+                    <tr>
+                        <td>특이성 (Specificity)</td>
+                        <td>원인이 특정 결과와 연결됨</td>
+                    </tr>
+                    <tr>
+                        <td>시간성 (Temporality)</td>
+                        <td>원인이 결과보다 시간적으로 앞섬 (필수 조건)</td>
+                    </tr>
+                    <tr>
+                        <td>용량-반응 관계 (Dose-Response)</td>
+                        <td>원인의 강도가 증가하면 결과도 증가</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="content-section">
+            <h2>📐 인과추론의 기본 표기법</h2>
+
+            <div class="equation">
+                <p><strong>처치 (Treatment):</strong> T (또는 D, A)</p>
+                <p>T = 1 (처치 받음), T = 0 (처치 받지 않음)</p>
+            </div>
+
+            <div class="equation">
+                <p><strong>결과 (Outcome):</strong> Y</p>
+            </div>
+
+            <div class="equation">
+                <p><strong>인과 효과 (Causal Effect):</strong></p>
+                <p>τ = E[Y(1) - Y(0)]</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    Y(1): 처치를 받았을 때의 잠재적 결과<br>
+                    Y(0): 처치를 받지 않았을 때의 잠재적 결과
+                </p>
+            </div>
+
+            <div class="info-box warning">
+                <h4>⚠️ 근본적인 인과추론의 문제</h4>
+                <p>
+                    같은 개체(사람, 회사, 국가 등)에 대해 동시에 두 가지 상태(처치 받음/받지 않음)를 관찰할 수 없습니다.
+                    이를 <strong>"인과추론의 근본 문제(Fundamental Problem of Causal Inference)"</strong>라고 합니다.
+                </p>
+                <p>
+                    예: 한 환자가 약을 먹었을 때와 먹지 않았을 때를 동시에 관찰할 수 없습니다.
+                </p>
+            </div>
+        </div>
+
+        <div class="content-section" id="quiz">
+            <h2>📝 퀴즈: 학습 내용 확인</h2>
+
+            <div class="quiz-container">
+                <div class="question">
+                    <h4>Q1. 다음 중 인과관계를 나타내는 것은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 아이스크림 판매량과 익사 사고 건수는 양의 상관관계가 있다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 백신 접종은 특정 질병의 발생률을 감소시킨다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 키가 큰 사람들은 평균적으로 더 높은 수입을 얻는다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 운동을 많이 하는 사람들은 건강 수치가 좋다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        백신 접종은 질병 발생률에 직접적인 인과 효과를 가집니다. 나머지는 상관관계이지만 교란 변수가 존재할 수 있습니다.
+                        (예: A는 날씨가 교란 변수, C는 부모의 사회경제적 지위가 교란 변수일 수 있음)
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q2. 인과추론의 근본적인 문제(Fundamental Problem)는?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 데이터가 충분하지 않다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 같은 개체에서 처치를 받은 경우와 받지 않은 경우를 동시에 관찰할 수 없다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 통계적 모델이 복잡하다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 상관관계를 계산하기 어렵다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        인과추론의 핵심 과제는 반사실(counterfactual)을 관찰할 수 없다는 것입니다.
+                        한 개체는 특정 시점에 처치를 받거나 받지 않거나 둘 중 하나만 가능합니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q3. 다음 중 교란 변수(Confounder)의 예시는?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 처치 변수
+                        </div>
+                        <div class="option" data-correct="false">
+                            B. 결과 변수
+                        </div>
+                        <div class="option" data-correct="true">
+                            C. 처치와 결과 모두에 영향을 미치는 변수
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 처치의 효과로 인해 변하는 변수
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: C</strong><br>
+                        교란 변수는 원인과 결과 모두에 영향을 미쳐서 인과관계를 왜곡할 수 있는 변수입니다.
+                        예: 운동과 건강의 관계에서 나이가 교란 변수가 될 수 있습니다.
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="markChapterComplete(1)" style="margin-top: 2rem;">
+                ✓ Chapter 1 완료하기
+            </button>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 다음 단계</h2>
+            <p>
+                인과추론의 기본 개념을 이해했다면, 이제 상관관계와 인과관계의 차이를 더 깊이 파고들어봅시다.
+                다음 챕터에서는 Simpson's Paradox와 같은 흥미로운 현상들을 살펴보겠습니다.
+            </p>
+
+            <div class="chapter-nav">
+                <a href="../index.html" class="btn">← 홈으로</a>
+                <a href="02-correlation-vs-causation.html" class="btn btn-success">Chapter 2: 상관관계 vs 인과관계 →</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Causal Inference 학습 가이드</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script>
+        // Scatter plot simulation
+        let scatterPlot = null;
+
+        function updateScatterPlot() {
+            const correlation = parseFloat(document.getElementById('correlation').value);
+            const sampleSize = parseInt(document.getElementById('sample-size').value);
+
+            if (!scatterPlot) {
+                scatterPlot = new ScatterPlot('scatter-plot');
+            }
+
+            scatterPlot.generateData(sampleSize, correlation);
+            scatterPlot.draw(600, 400);
+
+            // Update interpretation
+            let interpretation = '';
+            if (correlation > 0.7) {
+                interpretation = `상관계수 ${correlation.toFixed(1)}은 강한 양의 상관관계를 나타냅니다. 하지만 이것만으로는 X가 Y를 유발하는지, Y가 X를 유발하는지, 또는 제3의 변수가 둘 다 유발하는지 알 수 없습니다!`;
+            } else if (correlation > 0.3) {
+                interpretation = `상관계수 ${correlation.toFixed(1)}은 중간 정도의 양의 상관관계를 나타냅니다. 인과관계를 확인하려면 추가 분석이 필요합니다.`;
+            } else {
+                interpretation = `상관계수 ${correlation.toFixed(1)}은 약한 상관관계를 나타냅니다. 두 변수 간에 인과관계가 없을 가능성이 높습니다.`;
+            }
+
+            document.getElementById('interpretation').textContent = interpretation;
+        }
+
+        // Update value displays
+        document.getElementById('correlation').addEventListener('input', (e) => {
+            document.getElementById('corr-value').textContent = e.target.value;
+        });
+
+        document.getElementById('sample-size').addEventListener('input', (e) => {
+            document.getElementById('sample-value').textContent = e.target.value;
+        });
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            updateScatterPlot();
+        });
+    </script>
+</body>
+</html>

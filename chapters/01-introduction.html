@@ -5,313 +5,635 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chapter 1: 인과추론 소개</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .visual-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem;
+            border-radius: 20px;
+            margin: 2rem 0;
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .visual-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border-top: 5px solid #3498db;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .timeline {
+            position: relative;
+            padding: 2rem 0;
+        }
+
+        .timeline-item {
+            display: flex;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .timeline-dot {
+            width: 20px;
+            height: 20px;
+            background: #3498db;
+            border-radius: 50%;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.2);
+            animation: dotPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes dotPulse {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.2); }
+            50% { box-shadow: 0 0 0 8px rgba(52, 152, 219, 0.4); }
+        }
+
+        .timeline-content {
+            flex: 1;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .comparison-card {
+            padding: 2rem;
+            border-radius: 15px;
+            position: relative;
+        }
+
+        .comparison-card.left {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+        }
+
+        .comparison-card.right {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            color: white;
+        }
+
+        .comparison-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .animated-bg {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .animated-bg::after {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            top: -50%;
+            left: -50%;
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .interactive-demo {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 3rem;
+            border-radius: 20px;
+            margin: 3rem 0;
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .control-slider {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .slider-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .slider-value {
+            background: #3498db;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(52, 152, 219, 0.4);
+            transition: all 0.3s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #2980b9;
+            transform: scale(1.2);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.6);
+        }
+
+        .insight-box {
+            background: white;
+            border-left: 5px solid #f39c12;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 10px 10px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .insight-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .key-concept {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .key-concept::before {
+            content: '💡';
+            position: absolute;
+            font-size: 4rem;
+            top: -20px;
+            right: 20px;
+            opacity: 0.3;
+        }
+
+        .progress-indicator {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: white;
+            padding: 1rem;
+            border-radius: 50%;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            z-index: 999;
+        }
+
+        .reading-progress {
+            width: 100%;
+            height: 5px;
+            background: #ecf0f1;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+        }
+
+        .reading-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            width: 0%;
+            transition: width 0.1s;
+        }
+    </style>
 </head>
 <body>
+    <!-- Reading Progress Bar -->
+    <div class="reading-progress">
+        <div class="reading-progress-fill" id="readingProgress"></div>
+    </div>
+
+    <!-- Scroll Progress Indicator -->
+    <div class="progress-indicator" id="scrollProgress">0%</div>
+
     <nav class="navbar">
         <div class="navbar-container">
             <h1>🎓 Causal Inference 학습 가이드</h1>
             <ul class="nav-links">
                 <li><a href="../index.html">홈</a></li>
-                <li><a href="#content">학습내용</a></li>
+                <li><a href="#intro">소개</a></li>
+                <li><a href="#examples">사례</a></li>
                 <li><a href="#interactive">실습</a></li>
-                <li><a href="#quiz">퀴즈</a></li>
+                <li><a href="#concepts">핵심개념</a></li>
             </ul>
         </div>
     </nav>
 
     <div class="container">
-        <div class="chapter-header">
-            <span class="badge beginner">입문 - Chapter 1</span>
-            <h1>인과추론 소개 (Introduction to Causal Inference)</h1>
-            <p class="lead">인과추론의 기본 개념과 중요성을 이해하고, 실제 응용 사례를 살펴봅니다.</p>
-
-            <div class="chapter-nav">
-                <a href="../index.html" class="btn">← 홈으로</a>
-                <a href="02-correlation-vs-causation.html" class="btn btn-success">다음 챕터 →</a>
+        <!-- Hero Section with Animation -->
+        <div class="visual-card animated-bg">
+            <h1 style="font-size: 3rem; margin-bottom: 1rem;">🔬 인과추론의 세계로</h1>
+            <p style="font-size: 1.3rem; opacity: 0.95; line-height: 1.8;">
+                상관관계에서 인과관계로 - 데이터 과학의 가장 강력한 도구를 마스터하세요
+            </p>
+            <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+                <a href="#intro" class="btn" style="background: white; color: #667eea; font-weight: bold;">
+                    학습 시작 →
+                </a>
+                <a href="#interactive" class="btn" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
+                    Interactive 데모 →
+                </a>
             </div>
         </div>
 
-        <div class="content-section" id="content">
-            <h2>📖 학습 목표</h2>
-            <ul>
-                <li>인과추론(Causal Inference)의 정의와 필요성 이해하기</li>
-                <li>상관관계와 인과관계의 차이점 인식하기</li>
-                <li>실제 사례를 통해 인과추론의 중요성 파악하기</li>
-                <li>인과추론의 핵심 질문 이해하기</li>
-            </ul>
+        <!-- Statistics Cards -->
+        <div class="card-grid" style="margin: 3rem 0;">
+            <div class="stat-card fade-in">
+                <div class="stat-number" id="stat1">0</div>
+                <div class="stat-label">세계적 연구 논문</div>
+            </div>
+            <div class="stat-card fade-in" style="animation-delay: 0.2s;">
+                <div class="stat-number" id="stat2">0</div>
+                <div class="stat-label">노벨상 수상 (경제학)</div>
+            </div>
+            <div class="stat-card fade-in" style="animation-delay: 0.4s;">
+                <div class="stat-number" id="stat3">0</div>
+                <div class="stat-label">활용 산업 분야</div>
+            </div>
         </div>
 
+        <div class="content-section" id="intro">
+            <h2>🎯 인과추론이란 무엇인가?</h2>
+
+            <div class="comparison-table">
+                <div class="comparison-card left animated-bg">
+                    <div class="comparison-icon">📊</div>
+                    <h3>상관관계 (Correlation)</h3>
+                    <p style="margin: 1rem 0;">"A와 B가 함께 움직인다"</p>
+                    <ul style="list-style: none; padding: 0;">
+                        <li>✗ 방향성 없음</li>
+                        <li>✗ 인과성 불명확</li>
+                        <li>✗ 예측에 제한적</li>
+                    </ul>
+                </div>
+
+                <div class="comparison-card right animated-bg">
+                    <div class="comparison-icon">⚡</div>
+                    <h3>인과관계 (Causation)</h3>
+                    <p style="margin: 1rem 0;">"A가 B를 발생시킨다"</p>
+                    <ul style="list-style: none; padding: 0;">
+                        <li>✓ 명확한 방향성</li>
+                        <li>✓ 개입 가능</li>
+                        <li>✓ 의사결정 지원</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="key-concept">
+                <h3 style="margin-bottom: 1rem;">💡 핵심 질문</h3>
+                <p style="font-size: 1.2rem; line-height: 1.8;">
+                    <strong>"X가 Y에 미치는 인과적 효과는 무엇인가?"</strong>
+                </p>
+                <p style="margin-top: 1rem; opacity: 0.9;">
+                    단순히 X와 Y가 함께 발생하는 것을 관찰하는 것이 아니라,
+                    <strong>X를 변화시켰을 때 Y가 어떻게 변하는지</strong>를 이해하는 것입니다.
+                </p>
+            </div>
+        </div>
+
+        <!-- Timeline of Causal Inference -->
         <div class="content-section">
-            <h2>🤔 인과추론이란 무엇인가?</h2>
+            <h2>📅 인과추론의 역사</h2>
 
-            <p>
-                <strong>인과추론(Causal Inference)</strong>은 데이터로부터 원인과 결과의 관계를 파악하는 통계적 방법론입니다.
-                단순히 "A와 B가 함께 발생한다"는 것을 넘어, "A가 B를 발생시켰는가?"라는 질문에 답하는 학문입니다.
-            </p>
-
-            <div class="info-box note">
-                <h4>💡 핵심 질문</h4>
-                <p><strong>"X가 Y에 미치는 인과적 효과는 무엇인가?"</strong></p>
-                <p>예시:</p>
-                <ul>
-                    <li>새로운 약물이 환자의 회복에 실제로 도움이 되는가?</li>
-                    <li>교육 프로그램이 학생들의 성적을 향상시키는가?</li>
-                    <li>광고 캠페인이 매출 증가를 유발했는가?</li>
-                    <li>정책 변화가 경제 성장에 기여했는가?</li>
-                </ul>
-            </div>
-
-            <h3>왜 인과추론이 중요한가?</h3>
-
-            <div class="card-grid">
-                <div class="card">
-                    <h4>🏥 의학 및 보건</h4>
-                    <p>치료법의 실제 효과를 평가하고, 부작용을 파악하며, 최적의 치료 전략을 개발합니다.</p>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h4>1920s - Ronald Fisher</h4>
+                        <p>무작위 대조 실험(RCT)의 아버지. 농업 실험에서 무작위 배정의 중요성을 입증</p>
+                    </div>
                 </div>
 
-                <div class="card">
-                    <h4>📊 비즈니스 및 마케팅</h4>
-                    <p>마케팅 캠페인, 가격 전략, 제품 변경이 실제로 매출과 고객 만족도에 미치는 영향을 측정합니다.</p>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h4>1970s - Donald Rubin</h4>
+                        <p>잠재적 결과 프레임워크(Potential Outcomes Framework) 정립</p>
+                    </div>
                 </div>
 
-                <div class="card">
-                    <h4>🏛️ 공공 정책</h4>
-                    <p>교육, 복지, 경제 정책의 실제 효과를 평가하여 증거 기반 정책 수립을 지원합니다.</p>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h4>1980s - Judea Pearl</h4>
+                        <p>인과 그래프(Causal Graphs)와 구조 인과 모델(Structural Causal Models) 개발</p>
+                    </div>
                 </div>
 
-                <div class="card">
-                    <h4>🤖 인공지능 및 머신러닝</h4>
-                    <p>예측을 넘어 개입(intervention)의 효과를 이해하고, 더 강건한 모델을 만듭니다.</p>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h4>2021 - Joshua Angrist & Guido Imbens</h4>
+                        <p>자연실험 방법론으로 노벨 경제학상 수상</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="content-section">
-            <h2>🎯 실제 사례: 인과추론의 힘</h2>
+        <!-- Real World Applications with Charts -->
+        <div class="content-section" id="examples">
+            <h2>🌍 실제 응용 분야</h2>
 
-            <h3>사례 1: 흡연과 폐암</h3>
-            <p>
-                1950년대에 흡연자들이 비흡연자보다 폐암 발생률이 높다는 <strong>상관관계</strong>가 발견되었습니다.
-                하지만 담배 회사들은 "흡연이 폐암을 유발한다는 인과관계는 증명되지 않았다"고 주장했습니다.
-            </p>
-            <p>
-                과학자들은 다양한 인과추론 방법론을 통해 흡연이 실제로 폐암을 <strong>유발</strong>한다는 것을 입증했고,
-                이는 공중보건 정책의 큰 변화를 가져왔습니다.
-            </p>
+            <div class="chart-container">
+                <canvas id="applicationChart"></canvas>
+            </div>
 
-            <h3>사례 2: 최저임금 인상의 효과</h3>
-            <p>
-                최저임금을 인상하면 고용이 감소할까요? 단순히 최저임금과 고용률의 상관관계만 보면 오해할 수 있습니다.
-                Card와 Krueger의 유명한 연구(1994)는 <strong>자연실험(Natural Experiment)</strong>을 활용하여,
-                최저임금 인상이 고용에 부정적 영향을 미치지 않았다는 것을 보여주었습니다.
-            </p>
+            <div class="card-grid" style="margin-top: 2rem;">
+                <div class="card">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🏥</div>
+                    <h3>의학 & 보건</h3>
+                    <p>신약 효과 평가, 치료법 비교, 공중보건 정책 효과 측정</p>
+                    <div class="insight-box">
+                        <div class="insight-icon">💊</div>
+                        <strong>예시:</strong> COVID-19 백신의 실제 효과 추정
+                    </div>
+                </div>
 
-            <h3>사례 3: 온라인 광고의 효과</h3>
-            <p>
-                사용자가 광고를 클릭하고 구매했다면, 광고가 구매를 유발한 것일까요?
-                아니면 어차피 구매할 예정이었던 사용자에게 광고가 표시된 것일까요?
-                인과추론 없이는 광고의 실제 효과(ROI)를 정확히 측정할 수 없습니다.
-            </p>
+                <div class="card">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">💼</div>
+                    <h3>비즈니스</h3>
+                    <p>마케팅 캠페인 ROI, 가격 전략, A/B 테스트 분석</p>
+                    <div class="insight-box">
+                        <div class="insight-icon">📈</div>
+                        <strong>예시:</strong> 광고 지출이 매출에 미치는 실제 영향
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🏛️</div>
+                    <h3>공공 정책</h3>
+                    <p>교육 프로그램, 복지 정책, 경제 정책 효과 평가</p>
+                    <div class="insight-box">
+                        <div class="insight-icon">🎓</div>
+                        <strong>예시:</strong> 교육 투자가 경제 성장에 미치는 영향
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🤖</div>
+                    <h3>인공지능</h3>
+                    <p>공정한 AI, 설명 가능한 AI, 강화학습</p>
+                    <div class="insight-box">
+                        <div class="insight-icon">🔍</div>
+                        <strong>예시:</strong> 추천 알고리즘의 인과적 효과 분석
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="interactive-box" id="interactive">
-            <h3>🔬 Interactive 데모: 상관관계 vs 인과관계</h3>
-            <p>아래 시뮬레이션에서 두 변수 간의 상관관계와 실제 인과관계가 어떻게 다를 수 있는지 확인해보세요.</p>
+        <!-- Interactive Simulation -->
+        <div class="interactive-demo" id="interactive">
+            <h2 style="text-align: center; margin-bottom: 2rem;">
+                🎮 Interactive 데모: 상관관계 vs 인과관계
+            </h2>
 
-            <div class="simulation-container">
-                <div class="controls">
-                    <div class="control-group">
-                        <label for="correlation">상관계수 (Correlation): <span id="corr-value">0.7</span></label>
+            <div class="demo-controls">
+                <div class="control-slider">
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>상관계수</span>
+                            <span class="slider-value" id="corrValue">0.7</span>
+                        </div>
                         <input type="range" id="correlation" min="0" max="1" step="0.1" value="0.7">
                     </div>
-                    <div class="control-group">
-                        <label for="sample-size">샘플 크기: <span id="sample-value">100</span></label>
-                        <input type="range" id="sample-size" min="50" max="500" step="50" value="100">
-                    </div>
-                    <div class="control-group">
-                        <button class="btn" onclick="updateScatterPlot()">그래프 업데이트</button>
+                </div>
+
+                <div class="control-slider">
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>교란 변수 강도</span>
+                            <span class="slider-value" id="confValue">0.5</span>
+                        </div>
+                        <input type="range" id="confounding" min="0" max="1" step="0.1" value="0.5">
                     </div>
                 </div>
 
-                <div id="scatter-plot"></div>
+                <div class="control-slider">
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>샘플 크기</span>
+                            <span class="slider-value" id="sampleValue">100</span>
+                        </div>
+                        <input type="range" id="sampleSize" min="50" max="500" step="50" value="100">
+                    </div>
+                </div>
+            </div>
 
-                <div class="output-display">
-                    <p><strong>해석:</strong></p>
-                    <p id="interpretation">상관계수가 0.7일 때, 두 변수는 강한 양의 상관관계를 보입니다. 하지만 이것만으로는 X가 Y를 유발하는지 알 수 없습니다!</p>
+            <div class="chart-container">
+                <canvas id="scatterChart"></canvas>
+            </div>
+
+            <div class="insight-box">
+                <h4>📊 해석</h4>
+                <p id="interpretation">슬라이더를 조정하여 상관관계와 인과관계의 차이를 탐색해보세요!</p>
+            </div>
+        </div>
+
+        <!-- Key Concepts with Visualizations -->
+        <div class="content-section" id="concepts">
+            <h2>🔑 핵심 개념</h2>
+
+            <div class="card-grid">
+                <div class="card" style="border-left: 5px solid #e74c3c;">
+                    <h3>1. 반사실적 사고</h3>
+                    <p><em>"만약 ~했다면?"</em></p>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="counterfactualChart"></canvas>
+                    </div>
+                    <p style="margin-top: 1rem;">
+                        처치를 받았을 때와 받지 않았을 때를 비교하는 사고방식
+                    </p>
+                </div>
+
+                <div class="card" style="border-left: 5px solid #3498db;">
+                    <h3>2. 처치 효과</h3>
+                    <p><em>개입의 실제 영향</em></p>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="treatmentEffectChart"></canvas>
+                    </div>
+                    <p style="margin-top: 1rem;">
+                        ATE = E[Y(1) - Y(0)]
+                    </p>
+                </div>
+
+                <div class="card" style="border-left: 5px solid #2ecc71;">
+                    <h3>3. 교란 변수</h3>
+                    <p><em>숨겨진 혼동 요인</em></p>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="confoundingChart"></canvas>
+                    </div>
+                    <p style="margin-top: 1rem;">
+                        원인과 결과 모두에 영향을 미치는 제3의 변수
+                    </p>
+                </div>
+
+                <div class="card" style="border-left: 5px solid #f39c12;">
+                    <h3>4. 선택 편향</h3>
+                    <p><em>비무작위 배정의 문제</em></p>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="selectionBiasChart"></canvas>
+                    </div>
+                    <p style="margin-top: 1rem;">
+                        처치군과 대조군이 체계적으로 다를 때 발생
+                    </p>
                 </div>
             </div>
         </div>
 
+        <!-- Famous Examples -->
         <div class="content-section">
-            <h2>🔑 인과추론의 핵심 개념</h2>
+            <h2>📚 유명한 인과추론 사례</h2>
 
-            <div class="info-box tip">
-                <h4>✅ 인과추론의 기본 원칙</h4>
-                <ol>
-                    <li><strong>반사실적 사고 (Counterfactual Thinking):</strong> "만약 처치를 받지 않았다면 어떻게 되었을까?"</li>
-                    <li><strong>처치 효과 (Treatment Effect):</strong> 처치를 받았을 때와 받지 않았을 때의 결과 차이</li>
-                    <li><strong>교란 변수 통제 (Controlling Confounders):</strong> 원인과 결과 모두에 영향을 미치는 제3의 변수</li>
-                    <li><strong>가정의 명확화 (Explicit Assumptions):</strong> 인과추론은 항상 가정에 기반함</li>
-                </ol>
-            </div>
-
-            <h3>인과관계의 조건</h3>
-            <p>Bradford Hill은 인과관계를 판단하기 위한 9가지 기준을 제시했습니다:</p>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>기준</th>
-                        <th>설명</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>강도 (Strength)</td>
-                        <td>원인과 결과 사이의 연관성이 강할수록 인과관계 가능성이 높음</td>
-                    </tr>
-                    <tr>
-                        <td>일관성 (Consistency)</td>
-                        <td>다양한 상황과 연구에서 반복적으로 관찰됨</td>
-                    </tr>
-                    <tr>
-                        <td>특이성 (Specificity)</td>
-                        <td>원인이 특정 결과와 연결됨</td>
-                    </tr>
-                    <tr>
-                        <td>시간성 (Temporality)</td>
-                        <td>원인이 결과보다 시간적으로 앞섬 (필수 조건)</td>
-                    </tr>
-                    <tr>
-                        <td>용량-반응 관계 (Dose-Response)</td>
-                        <td>원인의 강도가 증가하면 결과도 증가</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="content-section">
-            <h2>📐 인과추론의 기본 표기법</h2>
-
-            <div class="equation">
-                <p><strong>처치 (Treatment):</strong> T (또는 D, A)</p>
-                <p>T = 1 (처치 받음), T = 0 (처치 받지 않음)</p>
-            </div>
-
-            <div class="equation">
-                <p><strong>결과 (Outcome):</strong> Y</p>
-            </div>
-
-            <div class="equation">
-                <p><strong>인과 효과 (Causal Effect):</strong></p>
-                <p>τ = E[Y(1) - Y(0)]</p>
-                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
-                    Y(1): 처치를 받았을 때의 잠재적 결과<br>
-                    Y(0): 처치를 받지 않았을 때의 잠재적 결과
-                </p>
-            </div>
-
-            <div class="info-box warning">
-                <h4>⚠️ 근본적인 인과추론의 문제</h4>
-                <p>
-                    같은 개체(사람, 회사, 국가 등)에 대해 동시에 두 가지 상태(처치 받음/받지 않음)를 관찰할 수 없습니다.
-                    이를 <strong>"인과추론의 근본 문제(Fundamental Problem of Causal Inference)"</strong>라고 합니다.
-                </p>
-                <p>
-                    예: 한 환자가 약을 먹었을 때와 먹지 않았을 때를 동시에 관찰할 수 없습니다.
-                </p>
-            </div>
-        </div>
-
-        <div class="content-section" id="quiz">
-            <h2>📝 퀴즈: 학습 내용 확인</h2>
-
-            <div class="quiz-container">
-                <div class="question">
-                    <h4>Q1. 다음 중 인과관계를 나타내는 것은?</h4>
-                    <div class="options">
-                        <div class="option" data-correct="false">
-                            A. 아이스크림 판매량과 익사 사고 건수는 양의 상관관계가 있다
-                        </div>
-                        <div class="option" data-correct="true">
-                            B. 백신 접종은 특정 질병의 발생률을 감소시킨다
-                        </div>
-                        <div class="option" data-correct="false">
-                            C. 키가 큰 사람들은 평균적으로 더 높은 수입을 얻는다
-                        </div>
-                        <div class="option" data-correct="false">
-                            D. 운동을 많이 하는 사람들은 건강 수치가 좋다
+            <div class="card">
+                <h3>🚬 흡연과 폐암 (1950s)</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1.5rem;">
+                    <div>
+                        <h4>발견</h4>
+                        <p>흡연자의 폐암 발생률이 비흡연자보다 훨씬 높음</p>
+                        <div class="chart-container" style="height: 200px; margin-top: 1rem;">
+                            <canvas id="smokingChart"></canvas>
                         </div>
                     </div>
-                    <div class="feedback">
-                        <strong>정답: B</strong><br>
-                        백신 접종은 질병 발생률에 직접적인 인과 효과를 가집니다. 나머지는 상관관계이지만 교란 변수가 존재할 수 있습니다.
-                        (예: A는 날씨가 교란 변수, C는 부모의 사회경제적 지위가 교란 변수일 수 있음)
-                    </div>
-                </div>
-
-                <div class="question">
-                    <h4>Q2. 인과추론의 근본적인 문제(Fundamental Problem)는?</h4>
-                    <div class="options">
-                        <div class="option" data-correct="false">
-                            A. 데이터가 충분하지 않다
+                    <div>
+                        <h4>도전</h4>
+                        <p style="margin-bottom: 1rem;">담배 회사의 반론: "단순한 상관관계일 뿐"</p>
+                        <div class="info-box note">
+                            <strong>인과추론 방법론의 승리:</strong>
+                            <ul style="margin-top: 0.5rem;">
+                                <li>전향적 코호트 연구</li>
+                                <li>다양한 교란 변수 통제</li>
+                                <li>용량-반응 관계 확인</li>
+                                <li>생물학적 메커니즘 규명</li>
+                            </ul>
                         </div>
-                        <div class="option" data-correct="true">
-                            B. 같은 개체에서 처치를 받은 경우와 받지 않은 경우를 동시에 관찰할 수 없다
-                        </div>
-                        <div class="option" data-correct="false">
-                            C. 통계적 모델이 복잡하다
-                        </div>
-                        <div class="option" data-correct="false">
-                            D. 상관관계를 계산하기 어렵다
-                        </div>
-                    </div>
-                    <div class="feedback">
-                        <strong>정답: B</strong><br>
-                        인과추론의 핵심 과제는 반사실(counterfactual)을 관찰할 수 없다는 것입니다.
-                        한 개체는 특정 시점에 처치를 받거나 받지 않거나 둘 중 하나만 가능합니다.
-                    </div>
-                </div>
-
-                <div class="question">
-                    <h4>Q3. 다음 중 교란 변수(Confounder)의 예시는?</h4>
-                    <div class="options">
-                        <div class="option" data-correct="false">
-                            A. 처치 변수
-                        </div>
-                        <div class="option" data-correct="false">
-                            B. 결과 변수
-                        </div>
-                        <div class="option" data-correct="true">
-                            C. 처치와 결과 모두에 영향을 미치는 변수
-                        </div>
-                        <div class="option" data-correct="false">
-                            D. 처치의 효과로 인해 변하는 변수
-                        </div>
-                    </div>
-                    <div class="feedback">
-                        <strong>정답: C</strong><br>
-                        교란 변수는 원인과 결과 모두에 영향을 미쳐서 인과관계를 왜곡할 수 있는 변수입니다.
-                        예: 운동과 건강의 관계에서 나이가 교란 변수가 될 수 있습니다.
                     </div>
                 </div>
             </div>
 
-            <button class="btn btn-success" onclick="markChapterComplete(1)" style="margin-top: 2rem;">
-                ✓ Chapter 1 완료하기
-            </button>
+            <div class="card">
+                <h3>💰 최저임금과 고용 (Card & Krueger, 1994)</h3>
+                <div class="chart-container" style="height: 300px; margin-top: 1rem;">
+                    <canvas id="minimumWageChart"></canvas>
+                </div>
+                <div class="info-box tip" style="margin-top: 1rem;">
+                    <strong>혁신적 접근:</strong> 뉴저지와 펜실베이니아의 자연실험 활용<br>
+                    <strong>결과:</strong> 최저임금 인상이 고용 감소로 이어지지 않음
+                </div>
+            </div>
         </div>
 
-        <div class="content-section">
-            <h2>📚 다음 단계</h2>
-            <p>
-                인과추론의 기본 개념을 이해했다면, 이제 상관관계와 인과관계의 차이를 더 깊이 파고들어봅시다.
-                다음 챕터에서는 Simpson's Paradox와 같은 흥미로운 현상들을 살펴보겠습니다.
+        <!-- Next Steps -->
+        <div class="visual-card animated-bg" style="margin-top: 3rem;">
+            <h2 style="margin-bottom: 1rem;">🚀 다음 단계</h2>
+            <p style="font-size: 1.1rem; margin-bottom: 2rem;">
+                인과추론의 기본 개념을 이해했다면, 이제 상관관계와 인과관계의 차이를
+                더 깊이 파고들어봅시다. Simpson's Paradox와 같은 흥미로운 현상들을
+                탐구할 준비가 되셨나요?
             </p>
-
-            <div class="chapter-nav">
-                <a href="../index.html" class="btn">← 홈으로</a>
-                <a href="02-correlation-vs-causation.html" class="btn btn-success">Chapter 2: 상관관계 vs 인과관계 →</a>
+            <div style="display: flex; gap: 1rem;">
+                <a href="../index.html" class="btn" style="background: rgba(255,255,255,0.2);">
+                    ← 홈으로
+                </a>
+                <a href="02-correlation-vs-causation.html" class="btn" style="background: white; color: #667eea;">
+                    Chapter 2: 상관관계 vs 인과관계 →
+                </a>
             </div>
         </div>
     </div>
@@ -321,46 +643,276 @@
     </footer>
 
     <script src="../js/main.js"></script>
+    <script src="../js/visualizations.js"></script>
     <script>
-        // Scatter plot simulation
-        let scatterPlot = null;
+        // Scroll progress
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.pageYOffset;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercent = (scrollTop / docHeight) * 100;
+
+            document.getElementById('readingProgress').style.width = scrollPercent + '%';
+            document.getElementById('scrollProgress').textContent = Math.round(scrollPercent) + '%';
+        });
+
+        // Animated counters
+        const stat1 = new AnimatedCounter('stat1');
+        const stat2 = new AnimatedCounter('stat2');
+        const stat3 = new AnimatedCounter('stat3');
+
+        // Intersection Observer for animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    stat1.animateTo(50000, 2000);
+                    stat2.animateTo(3, 2000);
+                    stat3.animateTo(10, 2000);
+                    observer.unobserve(entry.target);
+                }
+            });
+        });
+
+        observer.observe(document.querySelector('.stat-card'));
+
+        // Application Chart
+        const appCtx = document.getElementById('applicationChart').getContext('2d');
+        new Chart(appCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['의학/보건', '비즈니스', '공공정책', '기술/AI', '기타'],
+                datasets: [{
+                    data: [30, 25, 20, 15, 10],
+                    backgroundColor: [
+                        '#3498db',
+                        '#e74c3c',
+                        '#2ecc71',
+                        '#f39c12',
+                        '#9b59b6'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                plugins: {
+                    ...chartDefaults.plugins,
+                    title: {
+                        display: true,
+                        text: '인과추론 응용 분야 분포',
+                        font: { size: 18, weight: 'bold' }
+                    }
+                }
+            }
+        });
+
+        // Interactive Scatter Plot
+        let scatterChart = null;
 
         function updateScatterPlot() {
             const correlation = parseFloat(document.getElementById('correlation').value);
-            const sampleSize = parseInt(document.getElementById('sample-size').value);
+            const confounding = parseFloat(document.getElementById('confounding').value);
+            const n = parseInt(document.getElementById('sampleSize').value);
 
-            if (!scatterPlot) {
-                scatterPlot = new ScatterPlot('scatter-plot');
+            // Generate data
+            const data = [];
+            for (let i = 0; i < n; i++) {
+                const confounder = Math.random();
+                const x = confounder * confounding + (1 - confounding) * Math.random();
+                const y = correlation * x + (1 - correlation) * Math.random() + confounder * confounding;
+                data.push({ x, y });
             }
 
-            scatterPlot.generateData(sampleSize, correlation);
-            scatterPlot.draw(600, 400);
+            // Update chart
+            if (!scatterChart) {
+                scatterChart = new InteractiveScatterPlot('scatterChart');
+            }
+            const regression = scatterChart.plot(data, {
+                title: '상관관계 vs 인과관계 시각화',
+                xLabel: 'X (처치)',
+                yLabel: 'Y (결과)',
+                showRegression: true
+            });
 
             // Update interpretation
             let interpretation = '';
-            if (correlation > 0.7) {
-                interpretation = `상관계수 ${correlation.toFixed(1)}은 강한 양의 상관관계를 나타냅니다. 하지만 이것만으로는 X가 Y를 유발하는지, Y가 X를 유발하는지, 또는 제3의 변수가 둘 다 유발하는지 알 수 없습니다!`;
-            } else if (correlation > 0.3) {
-                interpretation = `상관계수 ${correlation.toFixed(1)}은 중간 정도의 양의 상관관계를 나타냅니다. 인과관계를 확인하려면 추가 분석이 필요합니다.`;
+            if (confounding > 0.7) {
+                interpretation = `⚠️ 높은 교란 (${confounding.toFixed(1)}): 관찰된 상관관계 ${regression.r2.toFixed(2)}는 대부분 교란에 의한 것입니다. 실제 인과 효과는 훨씬 작을 수 있습니다!`;
+            } else if (confounding > 0.3) {
+                interpretation = `📊 중간 교란 (${confounding.toFixed(1)}): 상관관계 ${regression.r2.toFixed(2)} 중 일부는 교란에 의한 것입니다. 인과 효과를 추정하려면 교란을 통제해야 합니다.`;
             } else {
-                interpretation = `상관계수 ${correlation.toFixed(1)}은 약한 상관관계를 나타냅니다. 두 변수 간에 인과관계가 없을 가능성이 높습니다.`;
+                interpretation = `✅ 낮은 교란 (${confounding.toFixed(1)}): 관찰된 상관관계 ${regression.r2.toFixed(2)}가 인과 효과에 가까울 수 있습니다.`;
             }
 
             document.getElementById('interpretation').textContent = interpretation;
         }
 
-        // Update value displays
-        document.getElementById('correlation').addEventListener('input', (e) => {
-            document.getElementById('corr-value').textContent = e.target.value;
+        // Slider event listeners
+        ['correlation', 'confounding', 'sampleSize'].forEach(id => {
+            const slider = document.getElementById(id);
+            const valueId = id === 'correlation' ? 'corrValue' :
+                           id === 'confounding' ? 'confValue' : 'sampleValue';
+
+            slider.addEventListener('input', (e) => {
+                document.getElementById(valueId).textContent = e.target.value;
+                updateScatterPlot();
+            });
         });
 
-        document.getElementById('sample-size').addEventListener('input', (e) => {
-            document.getElementById('sample-value').textContent = e.target.value;
+        // Initialize scatter plot
+        updateScatterPlot();
+
+        // Counterfactual Chart
+        new Chart(document.getElementById('counterfactualChart'), {
+            type: 'bar',
+            data: {
+                labels: ['처치 받음', '처치 안받음\n(반사실)'],
+                datasets: [{
+                    label: '결과 Y',
+                    data: [75, 60],
+                    backgroundColor: ['#3498db', '#e0e0e0'],
+                    borderWidth: 2,
+                    borderColor: ['#2980b9', '#bdc3c7']
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: { display: false }
+                }
+            }
         });
 
-        // Initialize on load
-        window.addEventListener('load', () => {
-            updateScatterPlot();
+        // Treatment Effect Chart
+        new Chart(document.getElementById('treatmentEffectChart'), {
+            type: 'line',
+            data: {
+                labels: ['시작', '1개월', '2개월', '3개월'],
+                datasets: [{
+                    label: '처치군',
+                    data: [50, 60, 70, 75],
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    fill: true
+                }, {
+                    label: '대조군',
+                    data: [50, 52, 55, 58],
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    fill: true
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Confounding Chart
+        new Chart(document.getElementById('confoundingChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: '높은 교란군',
+                    data: Array.from({length: 30}, () => ({
+                        x: Math.random() * 0.5 + 0.5,
+                        y: Math.random() * 0.5 + 0.5
+                    })),
+                    backgroundColor: '#e74c3c'
+                }, {
+                    label: '낮은 교란군',
+                    data: Array.from({length: 30}, () => ({
+                        x: Math.random() * 0.5,
+                        y: Math.random() * 0.5
+                    })),
+                    backgroundColor: '#3498db'
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    x: { display: false },
+                    y: { display: false }
+                }
+            }
+        });
+
+        // Selection Bias Chart
+        new Chart(document.getElementById('selectionBiasChart'), {
+            type: 'bar',
+            data: {
+                labels: ['처치군', '대조군'],
+                datasets: [{
+                    label: '평균 건강 상태',
+                    data: [70, 50],
+                    backgroundColor: ['#3498db', '#e74c3c']
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // Smoking Chart
+        new Chart(document.getElementById('smokingChart'), {
+            type: 'bar',
+            data: {
+                labels: ['흡연자', '비흡연자'],
+                datasets: [{
+                    label: '폐암 발생률 (%)',
+                    data: [15, 2],
+                    backgroundColor: ['#e74c3c', '#2ecc71']
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    y: { beginAtZero: true, max: 20 }
+                }
+            }
+        });
+
+        // Minimum Wage Chart
+        new Chart(document.getElementById('minimumWageChart'), {
+            type: 'line',
+            data: {
+                labels: ['인상 전', '인상 후'],
+                datasets: [{
+                    label: '뉴저지 (처치)',
+                    data: [20.4, 21.0],
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: '펜실베이니아 (대조)',
+                    data: [23.3, 21.2],
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    y: {
+                        title: { display: true, text: '평균 고용 (FTE)' },
+                        beginAtZero: false
+                    }
+                }
+            }
         });
     </script>
 </body>
