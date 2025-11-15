@@ -5,111 +5,1374 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chapter 10: 이중차분법</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <nav class="navbar">
         <div class="navbar-container">
             <h1>🎓 Causal Inference 학습 가이드</h1>
+            <ul class="nav-links">
+                <li><a href="../index.html">홈</a></li>
+                <li><a href="#content">학습내용</a></li>
+                <li><a href="#interactive">실습</a></li>
+                <li><a href="#quiz">퀴즈</a></li>
+            </ul>
         </div>
     </nav>
+
     <div class="container">
         <div class="chapter-header">
             <span class="badge intermediate">중급 - Chapter 10</span>
-            <h1>이중차분법 (Difference-in-Differences)</h1>
+            <h1>이중차분법 (Difference-in-Differences, DiD)</h1>
             <p class="lead">패널 데이터에서 시간에 따른 변화를 활용한 인과추론</p>
+
+            <div class="chapter-nav">
+                <a href="09-rdd.html" class="btn">← 이전 챕터</a>
+                <a href="11-synthetic-control.html" class="btn btn-success">다음 챕터 →</a>
+            </div>
+        </div>
+
+        <div class="content-section" id="content">
+            <h2>📖 학습 목표</h2>
+            <ul>
+                <li>이중차분법(DiD)의 핵심 개념과 직관 이해</li>
+                <li>평행 추세 가정(Parallel Trends Assumption)의 중요성 학습</li>
+                <li>2×2 DiD부터 다기간 DiD까지 확장 이해</li>
+                <li>Event Study 설계와 시각화 방법 습득</li>
+                <li>최신 DiD 방법론 (Callaway & Sant'Anna, Sun & Abraham) 학습</li>
+            </ul>
         </div>
 
         <div class="content-section">
-            <h2>🎯 DiD의 핵심 아이디어</h2>
+            <h2>🎯 DiD란 무엇인가?</h2>
+
             <p>
-                처치군과 대조군의 <strong>변화의 차이</strong>를 비교하여 인과 효과를 추정합니다.
-                시간에 불변하는 교란 변수를 자동으로 통제합니다.
+                <strong>이중차분법(Difference-in-Differences, DiD)</strong>은
+                처치군과 대조군의 <strong>시간에 따른 변화의 차이</strong>를 비교하여
+                인과 효과를 추정하는 준실험 설계 방법입니다.
             </p>
+
+            <div class="info-box note">
+                <h4>💡 핵심 아이디어</h4>
+                <p>
+                    <strong>첫 번째 차이:</strong> 각 그룹의 처치 전후 변화<br>
+                    <strong>두 번째 차이:</strong> 두 그룹의 변화량 차이
+                </p>
+                <p style="margin-top: 1rem;">
+                    처치군의 변화 - 대조군의 변화 = 처치 효과
+                </p>
+            </div>
+
+            <h3>간단한 예시: 최저임금과 고용</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>그룹</th>
+                        <th>처치 전 (2020)</th>
+                        <th>처치 후 (2021)</th>
+                        <th>변화 (차이)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>처치군</strong> (최저임금 인상)</td>
+                        <td>100명</td>
+                        <td>105명</td>
+                        <td style="color: #27ae60;">+5명</td>
+                    </tr>
+                    <tr>
+                        <td><strong>대조군</strong> (인상 없음)</td>
+                        <td>80명</td>
+                        <td>88명</td>
+                        <td style="color: #3498db;">+8명</td>
+                    </tr>
+                    <tr style="background: #fff3cd;">
+                        <td colspan="3"><strong>DiD 추정 효과</strong></td>
+                        <td><strong>+5 - (+8) = -3명</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="margin-top: 1rem;">
+                <strong>해석:</strong> 최저임금 인상으로 인해 고용이 3명 감소했습니다.
+                단순히 처치 전후를 비교하면 +5명 증가로 보이지만,
+                대조군도 +8명 증가했으므로 실제 효과는 -3명입니다.
+            </p>
+        </div>
+
+        <div class="content-section">
+            <h2>📐 DiD의 수학적 표현</h2>
+
+            <h3>2×2 DiD (기본 형태)</h3>
+
+            <p>2개 그룹 (처치/대조), 2개 시점 (전/후)</p>
 
             <div class="equation">
                 <p><strong>DiD 추정량:</strong></p>
                 <p>
-                    τ = (Ȳ<sub>treated,post</sub> - Ȳ<sub>treated,pre</sub>) - 
-                    (Ȳ<sub>control,post</sub> - Ȳ<sub>control,pre</sub>)
+                    τ<sub>DiD</sub> = (Ȳ<sub>Treated,Post</sub> - Ȳ<sub>Treated,Pre</sub>) -
+                    (Ȳ<sub>Control,Post</sub> - Ȳ<sub>Control,Pre</sub>)
                 </p>
-            </div>
-
-            <h3>평행 추세 가정 (Parallel Trends)</h3>
-            <div class="info-box note">
-                <h4>💡 핵심 가정</h4>
-                <p>
-                    처치가 없었다면, 처치군과 대조군의 <strong>추세가 평행</strong>했을 것<br>
-                    = 시간에 따른 변화가 동일했을 것
-                </p>
-                <p style="margin-top: 1rem; color: #e74c3c;">
-                    <strong>⚠️ 검증 불가능:</strong> 반사실이므로 직접 확인 불가<br>
-                    대신 사전 추세(pre-trends) 분석으로 간접 확인
-                </p>
-            </div>
-
-            <h3>회귀 명세</h3>
-            <div class="equation">
-                <p>Y<sub>it</sub> = α + βT<sub>i</sub> + γPost<sub>t</sub> + δ(T<sub>i</sub>×Post<sub>t</sub>) + ε<sub>it</sub></p>
                 <p style="font-size: 0.9rem; margin-top: 1rem;">
-                    δ: DiD 추정량 (처치 효과)
+                    = 처치군의 변화 - 대조군의 변화
                 </p>
             </div>
+
+            <p><strong>또는 다시 정리하면:</strong></p>
+
+            <div class="equation">
+                <p>
+                    τ<sub>DiD</sub> = (Ȳ<sub>Treated,Post</sub> - Ȳ<sub>Control,Post</sub>) -
+                    (Ȳ<sub>Treated,Pre</sub> - Ȳ<sub>Control,Pre</sub>)
+                </p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    = 사후 그룹 차이 - 사전 그룹 차이
+                </p>
+            </div>
+
+            <h3>회귀분석 표현</h3>
+
+            <p>DiD는 회귀분석으로 쉽게 구현할 수 있습니다:</p>
+
+            <div class="equation">
+                <p>Y<sub>it</sub> = α + β·Treated<sub>i</sub> + γ·Post<sub>t</sub> + δ·(Treated<sub>i</sub>×Post<sub>t</sub>) + ε<sub>it</sub></p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    <strong>α:</strong> 대조군, 사전 시점 평균<br>
+                    <strong>β:</strong> 사전 시점에서 처치군-대조군 차이<br>
+                    <strong>γ:</strong> 대조군의 시간 변화<br>
+                    <strong>δ:</strong> DiD 추정량 (처치 효과) ⭐
+                </p>
+            </div>
+
+            <div class="info-box tip">
+                <h4>💡 왜 교호작용(Interaction)인가?</h4>
+                <p>
+                    Treated × Post 교호작용항이 DiD 효과를 포착합니다.<br>
+                    이 항은 처치군이면서 동시에 사후 기간일 때만 1이 됩니다.
+                </p>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🔑 평행 추세 가정 (Parallel Trends Assumption)</h2>
+
+            <p>
+                DiD의 <strong>가장 중요한 가정</strong>입니다. 이 가정이 만족되지 않으면
+                DiD 추정량이 편향됩니다.
+            </p>
+
+            <div class="info-box note">
+                <h4>📊 평행 추세 가정</h4>
+                <p>
+                    <strong>처치가 없었다면</strong>, 처치군과 대조군의 <strong>결과 변수 추세가 평행</strong>했을 것입니다.
+                </p>
+                <div class="equation">
+                    <p>E[Y<sub>it</sub>(0) | Treated=1] - E[Y<sub>it</sub>(0) | Treated=0] = 상수</p>
+                    <p style="font-size: 0.9rem; margin-top: 1rem;">
+                        두 그룹의 반사실 결과 차이가 시간에 불변
+                    </p>
+                </div>
+            </div>
+
+            <h3>평행 추세 가정이 의미하는 것</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>✅ 허용되는 것</h4>
+                    <ul>
+                        <li>사전 수준이 다름 (OK)</li>
+                        <li>두 그룹이 모두 증가/감소 (OK)</li>
+                        <li>증가/감소 속도가 같으면 됨</li>
+                    </ul>
+                    <p style="margin-top: 1rem; color: #27ae60;">
+                        예: 처치군이 매년 +10, 대조군도 매년 +10
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h4>❌ 위배되는 경우</h4>
+                    <ul>
+                        <li>처치군만 가속 증가</li>
+                        <li>대조군만 감소</li>
+                        <li>추세의 기울기가 다름</li>
+                    </ul>
+                    <p style="margin-top: 1rem; color: #e74c3c;">
+                        예: 처치군 매년 +10, 대조군 매년 +5
+                    </p>
+                </div>
+            </div>
+
+            <div class="info-box warning">
+                <h4>⚠️ 평행 추세는 검증 불가능!</h4>
+                <p>
+                    평행 추세 가정은 <strong>반사실(counterfactual)</strong>에 대한 가정이므로
+                    직접 검증할 수 없습니다.
+                </p>
+                <p style="margin-top: 1rem;">
+                    <strong>대신 할 수 있는 것:</strong>
+                </p>
+                <ul>
+                    <li><strong>사전 추세 분석:</strong> 처치 전 기간에 추세가 평행했는지 확인</li>
+                    <li><strong>Event Study:</strong> 처치 전후 동적 효과 시각화</li>
+                    <li><strong>Placebo Tests:</strong> 가짜 처치 시점에서 효과가 없는지 확인</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="interactive-box" id="interactive">
+            <h3>🔬 Interactive 데모: DiD 시뮬레이션</h3>
+            <p>평행 추세 가정이 만족되거나 위배되는 상황을 시뮬레이션해보세요.</p>
+
+            <div class="simulation-container">
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="true-effect-did">진짜 처치 효과: <span id="true-effect-value">10</span></label>
+                        <input type="range" id="true-effect-did" min="-20" max="30" step="5" value="10">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="pre-trend-violation">사전 추세 위배 정도: <span id="pre-trend-value">0</span></label>
+                        <input type="range" id="pre-trend-violation" min="-5" max="5" step="1" value="0">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="treatment-timing">처치 시점 (연도): <span id="timing-value">3</span></label>
+                        <input type="range" id="treatment-timing" min="2" max="5" step="1" value="3">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="noise-level">노이즈 수준: <span id="noise-value">5</span></label>
+                        <input type="range" id="noise-level" min="0" max="15" step="3" value="5">
+                    </div>
+
+                    <div class="control-group">
+                        <button class="btn" onclick="runDiDSimulation()">시뮬레이션 실행</button>
+                    </div>
+                </div>
+
+                <div id="did-visualization">
+                    <canvas id="did-canvas" width="800" height="500"></canvas>
+                </div>
+
+                <div class="output-display" id="did-results">
+                    <p><strong>DiD 추정 결과:</strong></p>
+                    <div id="did-stats"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📊 DiD가 통제하는 것</h2>
+
+            <h3>1. 시간 불변 교란 변수 (Time-Invariant Confounders)</h3>
+
+            <p>
+                DiD는 <strong>그룹 간 고정된 차이</strong>를 자동으로 통제합니다.
+            </p>
+
+            <div class="info-box tip">
+                <p><strong>예시:</strong></p>
+                <ul>
+                    <li>지역의 문화적 특성 (변하지 않음)</li>
+                    <li>기업의 규모 (단기적으로 고정)</li>
+                    <li>개인의 능력 (시간에 불변)</li>
+                </ul>
+                <p style="margin-top: 1rem;">
+                    이런 변수들이 처치군과 대조군에서 다르더라도,
+                    시간에 불변하면 DiD가 자동으로 제거합니다! (차분을 통해)
+                </p>
+            </div>
+
+            <h3>2. 공통 시간 추세 (Common Time Trends)</h3>
+
+            <p>
+                DiD는 <strong>모든 그룹에 동일하게 영향을 미치는 시간 효과</strong>를 통제합니다.
+            </p>
+
+            <div class="info-box tip">
+                <p><strong>예시:</strong></p>
+                <ul>
+                    <li>경기 순환 (모든 지역이 동일하게 영향 받음)</li>
+                    <li>계절성 (모든 기업이 동일하게 영향 받음)</li>
+                    <li>전국적 정책 변화</li>
+                </ul>
+            </div>
+
+            <h3>DiD가 통제하지 못하는 것 ⚠️</h3>
+
+            <div class="info-box warning">
+                <p>
+                    <strong>그룹별로 다른 시간 변화 추세</strong>는 통제되지 않습니다!
+                </p>
+                <p><strong>문제가 되는 경우:</strong></p>
+                <ul>
+                    <li>처치군이 속한 산업이 급성장 중 (대조군 산업은 정체)</li>
+                    <li>처치군 지역에 대규모 개발 사업 동시 진행</li>
+                    <li>처치군 기업들의 혁신 속도가 빠름</li>
+                </ul>
+                <p style="margin-top: 1rem;">
+                    → 이런 경우 평행 추세 가정이 위배되고 DiD 추정량이 편향됩니다.
+                </p>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🎨 Event Study Design</h2>
+
+            <p>
+                <strong>Event Study</strong>는 처치 전후의 <strong>동적 효과</strong>를 추정하는 방법입니다.
+                DiD의 핵심 가정인 평행 추세를 시각적으로 검증할 수 있습니다.
+            </p>
+
+            <h3>Event Study 모형</h3>
+
+            <div class="equation">
+                <p>Y<sub>it</sub> = α<sub>i</sub> + λ<sub>t</sub> + Σ<sub>k≠-1</sub> β<sub>k</sub>·D<sub>it</sub><sup>k</sup> + ε<sub>it</sub></p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    D<sub>it</sub><sup>k</sup>: 처치로부터 k 기간 떨어진 더미<br>
+                    β<sub>k</sub>: k 기간의 처치 효과<br>
+                    기준: k = -1 (처치 직전)
+                </p>
+            </div>
+
+            <h3>Event Study의 용도</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>1️⃣ 사전 추세 검증</h4>
+                    <p>
+                        처치 전 기간 (k &lt; 0)의 β<sub>k</sub>가 모두 0에 가까우면
+                        평행 추세 가정이 타당함을 시사합니다.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h4>2️⃣ 동적 효과 추정</h4>
+                    <p>
+                        처치 후 각 기간 (k ≥ 0)의 효과를 개별적으로 추정하여
+                        효과가 시간에 따라 어떻게 변하는지 파악합니다.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h4>3️⃣ 예측 효과 탐지</h4>
+                    <p>
+                        처치 직전 기간에 효과가 나타나면 (anticipation effect)
+                        이를 감지할 수 있습니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>💻 Python 구현</h2>
+
+            <h3>1. 기본 2×2 DiD</h3>
 
             <div class="code-block">
                 <span class="language-badge">Python</span>
-                <pre><code>import pandas as pd
-from linearmodels import PanelOLS
+                <pre><code>import numpy as np
+import pandas as pd
+import statsmodels.formula.api as smf
+import matplotlib.pyplot as plt
+
+# 데이터 생성
+np.random.seed(42)
+
+# 패널 데이터: 2 그룹 × 5 시점 × 100 개체
+groups = ['treated', 'control']
+years = range(2018, 2023)
+n_per_group = 100
+
+data = []
+for group in groups:
+    for year in years:
+        for i in range(n_per_group):
+            treated = 1 if group == 'treated' else 0
+            post = 1 if year >= 2021 else 0  # 2021년 처치
+
+            # 반사실 결과 (처치 없을 때)
+            # 그룹별 고정 효과 + 공통 시간 추세 + 노이즈
+            y0 = 50 + 10*treated + 2*year + np.random.normal(0, 5)
+
+            # 처치 효과 = 10
+            treatment_effect = 10 if (treated == 1 and post == 1) else 0
+
+            y = y0 + treatment_effect
+
+            data.append({
+                'id': f'{group}_{i}',
+                'group': group,
+                'year': year,
+                'treated': treated,
+                'post': post,
+                'y': y
+            })
+
+df = pd.DataFrame(data)
+
+# =====================================
+# 방법 1: 평균 차이로 직접 계산
+# =====================================
+
+means = df.groupby(['treated', 'post'])['y'].mean()
+
+treated_post = means[(1, 1)]
+treated_pre = means[(1, 0)]
+control_post = means[(0, 1)]
+control_pre = means[(0, 0)]
+
+did_manual = (treated_post - treated_pre) - (control_post - control_pre)
+print(f"Manual DiD estimate: {did_manual:.2f}")
+
+# =====================================
+# 방법 2: 회귀분석
+# =====================================
 
 # DiD 회귀
-data['treated_post'] = data['treated'] * data['post']
+df['treated_post'] = df['treated'] * df['post']
 
-model = PanelOLS.from_formula(
-    'Y ~ treated + post + treated_post + EntityEffects + TimeEffects',
-    data=data.set_index(['id', 'time'])
+model = smf.ols('y ~ treated + post + treated_post', data=df)
+result = model.fit()
+print(result.summary())
+
+print(f"\nDiD coefficient: {result.params['treated_post']:.2f}")
+print(f"95% CI: [{result.conf_int().loc['treated_post', 0]:.2f}, "
+      f"{result.conf_int().loc['treated_post', 1]:.2f}]")
+
+# =====================================
+# 방법 3: 고정효과 모델 (패널)
+# =====================================
+
+from linearmodels import PanelOLS
+
+df_panel = df.set_index(['id', 'year'])
+
+# 개체 고정효과 + 시간 고정효과
+model_fe = PanelOLS.from_formula(
+    'y ~ treated_post + EntityEffects + TimeEffects',
+    data=df_panel
 )
-result = model.fit(cov_type='clustered', cluster_entity=True)
-print(result)</code></pre>
+
+result_fe = model_fe.fit(cov_type='clustered', cluster_entity=True)
+print(result_fe)
+
+# =====================================
+# 시각화
+# =====================================
+
+# 그룹별 연도별 평균
+group_means = df.groupby(['year', 'treated'])['y'].mean().reset_index()
+
+plt.figure(figsize=(10, 6))
+
+# 처치군
+treated_data = group_means[group_means['treated'] == 1]
+plt.plot(treated_data['year'], treated_data['y'],
+         marker='o', linewidth=2, label='Treated', color='#e74c3c')
+
+# 대조군
+control_data = group_means[group_means['treated'] == 0]
+plt.plot(control_data['year'], control_data['y'],
+         marker='s', linewidth=2, label='Control', color='#3498db')
+
+# 처치 시점 표시
+plt.axvline(x=2020.5, color='gray', linestyle='--', label='Treatment')
+
+plt.xlabel('Year')
+plt.ylabel('Outcome')
+plt.title('Difference-in-Differences')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()</code></pre>
             </div>
 
-            <h3>Event Study (동적 DiD)</h3>
-            <p>처치 전후의 동적 효과를 추정하여 평행 추세 가정 검증</p>
+            <h3>2. Event Study 구현</h3>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>import numpy as np
+import pandas as pd
+import statsmodels.formula.api as smf
+import matplotlib.pyplot as plt
+
+# 패널 데이터 생성 (여러 시점)
+np.random.seed(42)
+years = range(2015, 2024)  # 9년
+n_per_group = 200
+treatment_year = 2020
+
+data = []
+for treated in [0, 1]:
+    for year in years:
+        for i in range(n_per_group):
+            # 처치로부터 떨어진 시간
+            time_to_treatment = year - treatment_year
+
+            # 기본 추세
+            y0 = 50 + 10*treated + 2*year + np.random.normal(0, 5)
+
+            # 처치 효과 (처치 후에만)
+            if treated == 1 and year >= treatment_year:
+                # 동적 효과: 처치 후 점진적으로 증가
+                years_since = year - treatment_year
+                treatment_effect = 8 + 2*years_since
+            else:
+                treatment_effect = 0
+
+            y = y0 + treatment_effect
+
+            data.append({
+                'id': f'unit_{treated}_{i}',
+                'treated': treated,
+                'year': year,
+                'time_to_treatment': time_to_treatment,
+                'y': y
+            })
+
+df = pd.DataFrame(data)
+
+# Event study 회귀
+# k = -1을 기준(omitted)으로 설정
+df['rel_time'] = df['time_to_treatment']
+
+# 더미 변수 생성
+for k in range(-5, 4):
+    if k != -1:  # 기준 제외
+        df[f'lead_lag_{k}'] = ((df['treated'] == 1) &
+                                (df['rel_time'] == k)).astype(int)
+
+# 회귀 실행
+formula = 'y ~ ' + ' + '.join([f'lead_lag_{k}' for k in range(-5, 4) if k != -1])
+model = smf.ols(formula, data=df)
+result = model.fit(cov_type='HC1')
+
+# 결과 추출
+coefs = []
+ci_lower = []
+ci_upper = []
+periods = []
+
+for k in range(-5, 4):
+    if k == -1:
+        coefs.append(0)  # 기준
+        ci_lower.append(0)
+        ci_upper.append(0)
+    else:
+        coefs.append(result.params[f'lead_lag_{k}'])
+        ci_lower.append(result.conf_int().loc[f'lead_lag_{k}', 0])
+        ci_upper.append(result.conf_int().loc[f'lead_lag_{k}', 1])
+    periods.append(k)
+
+# 시각화
+plt.figure(figsize=(12, 6))
+plt.plot(periods, coefs, marker='o', linewidth=2, markersize=8, color='#2c3e50')
+plt.fill_between(periods, ci_lower, ci_upper, alpha=0.2, color='#3498db')
+plt.axhline(y=0, color='red', linestyle='--', linewidth=1)
+plt.axvline(x=-0.5, color='gray', linestyle='--', linewidth=1, label='Treatment')
+
+plt.xlabel('Time Relative to Treatment')
+plt.ylabel('Coefficient')
+plt.title('Event Study: Dynamic Treatment Effects')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+# 사전 추세 테스트
+pre_treatment_coefs = [coefs[i] for i, k in enumerate(periods) if k < 0 and k != -1]
+print(f"\nPre-treatment coefficients: {pre_treatment_coefs}")
+print("All close to zero? → Parallel trends likely holds")</code></pre>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>💻 R 구현</h2>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(fixest)
+library(ggplot2)
+library(dplyr)
+
+# 데이터 생성
+set.seed(42)
+
+# 패널 데이터
+data <- expand.grid(
+  unit = 1:200,
+  year = 2015:2023
+) %>%
+  mutate(
+    treated = ifelse(unit <= 100, 1, 0),
+    treatment_year = 2020,
+    post = ifelse(year >= treatment_year, 1, 0),
+    time_to_treatment = year - treatment_year,
+
+    # 결과 변수
+    y0 = 50 + 10*treated + 2*year + rnorm(n(), 0, 5),
+
+    # 처치 효과
+    te = ifelse(treated == 1 & post == 1,
+                8 + 2*(year - treatment_year), 0),
+    y = y0 + te
+  )
+
+# ====================================
+# 기본 DiD
+# ====================================
+
+did_model <- feols(
+  y ~ treated + post + treated:post,
+  data = data
+)
+
+summary(did_model)
+
+# ====================================
+# 고정효과 DiD
+# ====================================
+
+# 개체 고정효과 + 연도 고정효과
+did_fe <- feols(
+  y ~ treated:post | unit + year,
+  data = data,
+  cluster = ~unit  # 개체 수준 클러스터링
+)
+
+summary(did_fe)
+
+# ====================================
+# Event Study
+# ====================================
+
+event_study <- feols(
+  y ~ i(time_to_treatment, treated, ref=-1) | unit + year,
+  data = data,
+  cluster = ~unit
+)
+
+# 시각화
+iplot(event_study,
+      main = "Event Study: Dynamic Treatment Effects",
+      xlab = "Time to Treatment",
+      ylab = "Coefficient")
+
+# 결과 확인
+summary(event_study)
+
+# ====================================
+# 강건성 검증
+# ====================================
+
+# 1. Placebo test: 가짜 처치 시점
+data_placebo <- data %>%
+  filter(year < 2020) %>%
+  mutate(
+    fake_post = ifelse(year >= 2018, 1, 0),
+    fake_treated_post = treated * fake_post
+  )
+
+placebo_test <- feols(
+  y ~ fake_treated_post | unit + year,
+  data = data_placebo
+)
+
+summary(placebo_test)
+# 효과가 0에 가까워야 함 (처치 전이므로)
+
+# 2. 다양한 시기 제외
+# 첫 해 제외
+did_robust1 <- feols(
+  y ~ treated:post | unit + year,
+  data = data %>% filter(year != 2020),
+  cluster = ~unit
+)
+
+# 마지막 해 제외
+did_robust2 <- feols(
+  y ~ treated:post | unit + year,
+  data = data %>% filter(year != 2023),
+  cluster = ~unit
+)
+
+# 결과 비교
+etable(did_fe, did_robust1, did_robust2,
+       headers = c("Baseline", "Excl. 2020", "Excl. 2023"))</code></pre>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 실제 연구 사례</h2>
+
+            <h3>1. Card & Krueger (1994) - 최저임금과 고용</h3>
+
+            <div class="info-box note">
+                <p><strong>연구 질문:</strong> 최저임금 인상이 고용을 감소시키는가?</p>
+                <p><strong>처치군:</strong> 뉴저지 (New Jersey) - 1992년 최저임금 $4.25 → $5.05</p>
+                <p><strong>대조군:</strong> 펜실베이니아 (Pennsylvania) - 최저임금 변화 없음</p>
+                <p><strong>결과 변수:</strong> 패스트푸드 레스토랑 고용</p>
+                <p><strong>데이터:</strong> 처치 전 (1992.02) vs 처치 후 (1992.11)</p>
+            </div>
+
+            <p><strong>핵심 발견:</strong></p>
+            <ul>
+                <li>전통적 경제 이론: 최저임금 ↑ → 고용 ↓</li>
+                <li><strong>Card & Krueger 결과:</strong> 최저임금 ↑ → 고용 변화 없음 또는 약간 증가!</li>
+                <li>뉴저지 레스토랑 고용: 20.4 → 21.0 명 (+0.6)</li>
+                <li>펜실베이니아 레스토랑 고용: 23.3 → 21.2 명 (-2.1)</li>
+                <li><strong>DiD 효과:</strong> +0.6 - (-2.1) = +2.7 명 증가</li>
+            </ul>
+
+            <p><strong>영향:</strong></p>
+            <ul>
+                <li>최저임금 연구의 패러다임 전환</li>
+                <li>노동경제학에서 DiD 방법론 확산</li>
+                <li>정책 논쟁에 실증적 근거 제공</li>
+            </ul>
+
+            <h3>2. Duflo (2001) - 인도네시아 학교 건설과 교육</h3>
+
+            <div class="info-box note">
+                <p><strong>연구 질문:</strong> 학교 건설이 교육 수준을 높이는가?</p>
+                <p><strong>처치:</strong> 1973-1979년 인도네시아 대규모 학교 건설 프로그램 (INPRES)</p>
+                <p><strong>처치 강도:</strong> 지역별로 건설된 학교 수가 다름 (DiD with continuous treatment)</p>
+                <p><strong>결과:</strong> 교육 연수, 임금</p>
+            </div>
+
+            <p><strong>핵심 발견:</strong></p>
+            <ul>
+                <li>학교 2개 건설 → 교육 연수 약 0.12-0.19년 증가</li>
+                <li>교육 1년 증가 → 임금 약 1.5-2.7% 증가</li>
+                <li>교육 투자의 장기적 효과 입증</li>
+            </ul>
+
+            <h3>3. Autor (2003) - 부당해고 법과 고용</h3>
+
+            <div class="info-box note">
+                <p><strong>연구 질문:</strong> 고용 보호 법규가 고용 수준에 영향을 미치는가?</p>
+                <p><strong>처치:</strong> 미국 주(state)별로 다른 시기에 부당해고 예외(wrongful discharge doctrine) 도입</p>
+                <p><strong>설계:</strong> Staggered DiD (시차를 둔 처치)</p>
+                <p><strong>결과:</strong> 고용률</p>
+            </div>
+
+            <p><strong>핵심 발견:</strong></p>
+            <ul>
+                <li>부당해고 보호 법 도입 → 고용 약 0.8-1.6% 감소</li>
+                <li>고용 보호가 역설적으로 채용 감소 초래</li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>🆕 최신 DiD 방법론</h2>
+
+            <h3>왜 새로운 방법론이 필요한가?</h3>
+
+            <p>
+                전통적 DiD는 <strong>2×2 설정</strong> (2그룹, 2시점)을 가정합니다.
+                하지만 실제 연구에서는:
+            </p>
+
+            <ul>
+                <li>처치 시기가 그룹마다 다름 (Staggered adoption)</li>
+                <li>처치 효과가 시간에 따라 변함 (Dynamic effects)</li>
+                <li>여러 시점, 여러 그룹</li>
+            </ul>
+
+            <div class="info-box warning">
+                <h4>⚠️ TWFE의 문제점 (Goodman-Bacon 2021)</h4>
+                <p>
+                    Two-Way Fixed Effects (TWFE) 추정량은 <strong>잘못된 가중치</strong>를 사용할 수 있습니다.
+                </p>
+                <ul>
+                    <li>이미 처치받은 그룹이 나중에 처치받는 그룹의 대조군이 됨</li>
+                    <li>처치 효과가 시간에 따라 변하면 편향 발생</li>
+                    <li>음(-)의 가중치 문제</li>
+                </ul>
+            </div>
+
+            <h3>1. Callaway & Sant'Anna (2021)</h3>
+
+            <div class="info-box tip">
+                <p><strong>핵심 아이디어:</strong></p>
+                <ul>
+                    <li>처치 시기별로 <strong>그룹-시간 평균 처치 효과 (ATT<sub>gt</sub>)</strong> 개별 추정</li>
+                    <li>아직 처치받지 않은 그룹만 대조군으로 사용</li>
+                    <li>원하는 가중치로 집계 가능</li>
+                </ul>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(did)
+
+# Callaway & Sant'Anna 방법
+cs_result <- att_gt(
+  yname = "y",
+  tname = "year",
+  idname = "unit",
+  gname = "first_treat",  # 첫 처치 시기
+  data = panel_data,
+  control_group = "notyettreated"  # 아직 처치 안 받은 그룹만 대조군
+)
+
+# 시각화
+ggdid(cs_result)
+
+# 집계
+agg_simple <- aggte(cs_result, type = "simple")
+agg_dynamic <- aggte(cs_result, type = "dynamic")
+
+summary(agg_simple)
+summary(agg_dynamic)</code></pre>
+            </div>
+
+            <h3>2. Sun & Abraham (2021)</h3>
+
+            <div class="info-box tip">
+                <p><strong>Interaction-Weighted Estimator:</strong></p>
+                <ul>
+                    <li>마지막에 처치받는 그룹(last treated)을 대조군으로 사용</li>
+                    <li>교호작용 가중 추정량</li>
+                </ul>
+            </div>
 
             <div class="code-block">
                 <span class="language-badge">R</span>
                 <pre><code>library(fixest)
 
-# Event study
-event_study <- feols(
-    Y ~ i(time_to_treatment, treated, ref=-1) | id + year,
-    data = panel_data,
-    cluster = ~id
+# Sun & Abraham 방법
+sunab_result <- feols(
+  y ~ sunab(first_treat, year) | unit + year,
+  data = panel_data,
+  cluster = ~unit
 )
 
-# Plot
-iplot(event_study)</code></pre>
+# 시각화
+iplot(sunab_result)</code></pre>
             </div>
 
-            <h3>대표 연구: Card & Krueger (1994) - 최저임금</h3>
-            <p>
-                뉴저지의 최저임금 인상이 고용에 미친 영향<br>
-                처치군: 뉴저지, 대조군: 펜실베이니아<br>
-                결과: 고용 감소 없음 (전통적 예측과 상반)
-            </p>
+            <h3>3. Goodman-Bacon (2021) - DiD 분해</h3>
 
-            <h3>최신 방법론</h3>
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(bacondecomp)
+
+# TWFE 추정량 분해
+bacon_decomp <- bacon(
+  y ~ treated_post,
+  data = panel_data,
+  id_var = "unit",
+  time_var = "year"
+)
+
+# 시각화: 각 2×2 비교의 가중치
+ggplot(bacon_decomp, aes(x=weight, y=estimate, shape=type)) +
+  geom_point() +
+  labs(title="Bacon Decomposition")</code></pre>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>⚠️ DiD 사용 시 주의사항</h2>
+
+            <h3>1. 평행 추세 위배</h3>
+
+            <div class="info-box warning">
+                <p><strong>문제:</strong> 처치군과 대조군의 사전 추세가 다르면 편향 발생</p>
+                <p><strong>해결책:</strong></p>
+                <ul>
+                    <li>Event study로 사전 추세 시각화</li>
+                    <li>유사한 추세를 가진 대조군 선택</li>
+                    <li>추세를 통제하는 모형 (group-specific linear trends)</li>
+                </ul>
+            </div>
+
+            <h3>2. Anticipation Effects (예측 효과)</h3>
+
             <ul>
-                <li><strong>Callaway & Sant'Anna (2021):</strong> 이질적 시기 처치</li>
-                <li><strong>Sun & Abraham (2021):</strong> Interaction-weighted estimator</li>
-                <li><strong>Goodman-Bacon (2021):</strong> DiD 분해 정리</li>
+                <li>처치 발표 시점과 실제 시행 시점이 다를 때</li>
+                <li>개인/기업이 미리 행동을 조정할 수 있음</li>
+                <li><strong>해결책:</strong> Event study로 탐지, 예측 기간 제외</li>
+            </ul>
+
+            <h3>3. Spillover Effects (파급 효과)</h3>
+
+            <div class="info-box warning">
+                <p>
+                    대조군이 처치군의 영향을 받으면 SUTVA 위배
+                </p>
+                <p><strong>예시:</strong></p>
+                <ul>
+                    <li>이웃 도시의 정책이 우리 도시에 영향</li>
+                    <li>경쟁 기업의 혁신이 우리 기업에 영향</li>
+                </ul>
+            </div>
+
+            <h3>4. Composition Changes (구성 변화)</h3>
+
+            <ul>
+                <li>관측되는 개체 구성이 시간에 따라 변하면 문제</li>
+                <li>예: 처치 후 고성과자만 남고 저성과자는 퇴사</li>
+                <li><strong>해결책:</strong> 균형 패널(balanced panel) 사용</li>
+            </ul>
+
+            <h3>5. Staggered Adoption 문제</h3>
+
+            <ul>
+                <li>전통적 TWFE는 부적절한 가중치 사용</li>
+                <li><strong>해결책:</strong> Callaway & Sant'Anna, Sun & Abraham 등 최신 방법 사용</li>
             </ul>
         </div>
 
-        <div class="chapter-nav">
-            <a href="09-rdd.html" class="btn">← Chapter 9</a>
-            <a href="11-synthetic-control.html" class="btn btn-success">Chapter 11: 합성 통제법 →</a>
+        <div class="content-section" id="quiz">
+            <h2>📝 퀴즈: 학습 내용 확인</h2>
+
+            <div class="quiz-container">
+                <div class="question">
+                    <h4>Q1. DiD의 핵심 가정은 무엇인가요?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 처치군과 대조군의 사전 수준이 동일하다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 처치가 없었다면 두 그룹의 추세가 평행했을 것이다 (평행 추세)
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 처치 배정이 완전 무작위다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 처치 효과가 시간에 불변이다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        DiD의 핵심 가정은 평행 추세(Parallel Trends)입니다.
+                        처치가 없었다면 처치군과 대조군의 결과 변수 추세가 평행했을 것이라는 가정입니다.
+                        사전 수준이 다른 것은 괜찮지만, 추세의 기울기가 같아야 합니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q2. DiD가 자동으로 통제하는 것은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 시간에 따라 변하는 모든 교란 변수
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 시간 불변 그룹 차이와 공통 시간 추세
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 그룹별로 다른 시간 추세
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 처치 효과의 이질성
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        DiD는 시간에 불변하는 그룹 간 차이(time-invariant group differences)와
+                        모든 그룹에 동일하게 영향을 미치는 시간 효과(common time trends)를 자동으로 통제합니다.
+                        하지만 그룹별로 다른 시간 추세는 통제하지 못합니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q3. Event Study의 주요 목적은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. DiD 추정량의 표준오차를 줄이기 위해
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 평행 추세 가정을 검증하고 동적 효과를 추정하기 위해
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 더 많은 대조군을 찾기 위해
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 처치 시점을 결정하기 위해
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        Event Study는 처치 전후 각 기간의 효과를 개별적으로 추정합니다.
+                        이를 통해 (1) 처치 전 기간에 효과가 0인지 확인하여 평행 추세 가정을 검증하고,
+                        (2) 처치 후 시간에 따른 동적 효과를 파악할 수 있습니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q4. Card & Krueger (1994) 연구의 주요 발견은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 최저임금 인상이 고용을 크게 감소시켰다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 최저임금 인상이 고용을 감소시키지 않았거나 오히려 증가시켰다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 최저임금이 임금에 영향을 미치지 않았다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. DiD 방법론이 부적절하다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        Card & Krueger (1994)는 뉴저지의 최저임금 인상이 패스트푸드 레스토랑 고용을
+                        감소시키지 않았다는 것을 발견했습니다. 이는 전통적인 경제 이론 예측과 달라
+                        최저임금 연구에 큰 영향을 미쳤습니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q5. 평행 추세 가정에 대한 올바른 설명은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 처치 전 데이터로 완벽하게 검증 가능하다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 반사실에 대한 가정이므로 직접 검증 불가능하지만, 사전 추세 분석으로 간접 확인 가능하다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 두 그룹의 사전 수준이 같아야 한다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 처치 후 추세가 평행해야 한다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        평행 추세 가정은 "처치가 없었다면"이라는 반사실에 대한 가정이므로
+                        직접 검증할 수 없습니다. 대신 처치 전 기간의 추세가 평행한지 확인하거나
+                        Event Study로 사전 효과가 0인지 확인하여 간접적으로 검증합니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q6. TWFE (Two-Way Fixed Effects)의 문제점은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 계산이 너무 복잡하다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. Staggered adoption 상황에서 부적절한 가중치를 사용하여 편향이 발생할 수 있다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 표준오차가 너무 크다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 평행 추세 가정이 필요 없다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        Goodman-Bacon (2021) 등의 연구에서 밝혀진 바와 같이,
+                        처치 시기가 그룹마다 다른 staggered adoption 상황에서
+                        전통적 TWFE는 이미 처치받은 그룹을 대조군으로 사용하는 등
+                        부적절한 가중치를 사용하여 편향이 발생할 수 있습니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q7. 다음 중 DiD 설계에 적합한 상황은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 처치 배정이 완전 무작위인 RCT
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 특정 지역에만 정책이 시행되고, 유사한 다른 지역이 대조군으로 존재
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 단일 시점, 단일 그룹만 관측 가능
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 처치군과 대조군의 추세가 반대 방향
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        DiD는 특정 그룹(지역, 기업 등)에만 정책/처치가 시행되고,
+                        처치받지 않은 유사한 대조군이 존재하며,
+                        처치 전후 데이터가 모두 있는 상황에 적합합니다.
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="markChapterComplete(10)" style="margin-top: 2rem;">
+                ✓ Chapter 10 완료하기
+            </button>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 추천 자료</h2>
+
+            <h3>논문</h3>
+            <ul>
+                <li>Card, D., & Krueger, A. B. (1994). "Minimum wages and employment: A case study of the fast-food industry in New Jersey and Pennsylvania." <em>American Economic Review</em>, 84(4), 772-793.</li>
+                <li>Bertrand, M., Duflo, E., & Mullainathan, S. (2004). "How much should we trust differences-in-differences estimates?" <em>The Quarterly Journal of Economics</em>, 119(1), 249-275.</li>
+                <li>Goodman-Bacon, A. (2021). "Difference-in-differences with variation in treatment timing." <em>Journal of Econometrics</em>, 225(2), 254-277.</li>
+                <li>Callaway, B., & Sant'Anna, P. H. (2021). "Difference-in-differences with multiple time periods." <em>Journal of Econometrics</em>, 225(2), 200-230.</li>
+                <li>Sun, L., & Abraham, S. (2021). "Estimating dynamic treatment effects in event studies with heterogeneous treatment effects." <em>Journal of Econometrics</em>, 225(2), 175-199.</li>
+            </ul>
+
+            <h3>책</h3>
+            <ul>
+                <li>Angrist, J. D., & Pischke, J. S. (2008). <em>Mostly Harmless Econometrics</em>. Princeton University Press. (Chapter 5)</li>
+                <li>Cunningham, S. (2021). <em>Causal Inference: The Mixtape</em>. Yale University Press. (Chapter 9)</li>
+                <li>Huntington-Klein, N. (2021). <em>The Effect: An Introduction to Research Design and Causality</em>. CRC Press. (Chapter 18)</li>
+            </ul>
+
+            <h3>온라인 리소스</h3>
+            <ul>
+                <li><a href="https://bcallaway11.github.io/did/" target="_blank">did 패키지 (Callaway & Sant'Anna)</a></li>
+                <li><a href="https://asjadnaqvi.github.io/DiD/" target="_blank">DiD Reading List</a></li>
+                <li><a href="https://diff.healthpolicydatascience.org/" target="_blank">Difference-in-Differences Resources</a></li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>🎯 다음 단계</h2>
+            <p>
+                DiD를 마스터했다면, 이제 <strong>합성 통제법(Synthetic Control Method)</strong>을 배워봅시다.
+                합성 통제법은 단일 처치 단위(예: 한 국가, 한 주)의 인과 효과를 추정하는 강력한 방법입니다.
+            </p>
+
+            <div class="chapter-nav">
+                <a href="09-rdd.html" class="btn">← Chapter 9: 회귀 불연속 설계</a>
+                <a href="11-synthetic-control.html" class="btn btn-success">Chapter 11: 합성 통제법 →</a>
+            </div>
         </div>
     </div>
-    <footer><p>&copy; 2024 Causal Inference 학습 가이드</p></footer>
+
+    <footer>
+        <p>&copy; 2024 Causal Inference 학습 가이드</p>
+    </footer>
+
     <script src="../js/main.js"></script>
+    <script src="../js/visualizations.js"></script>
+    <script>
+        // DiD Simulation
+        function runDiDSimulation() {
+            const trueEffect = parseFloat(document.getElementById('true-effect-did').value);
+            const preTrendViolation = parseFloat(document.getElementById('pre-trend-violation').value);
+            const treatmentTiming = parseInt(document.getElementById('treatment-timing').value);
+            const noiseLevel = parseFloat(document.getElementById('noise-level').value);
+
+            const years = 7;  // 0부터 6까지
+            const nPerGroup = 50;
+
+            // 데이터 생성
+            const data = {
+                treated: [],
+                control: []
+            };
+
+            for (let year = 0; year < years; year++) {
+                // 처치군
+                let treatedMean = 50 + 5 * year;  // 기본 추세
+                if (year >= treatmentTiming) {
+                    treatedMean += trueEffect;  // 처치 효과
+                }
+                // 사전 추세 위배
+                treatedMean += preTrendViolation * year;
+
+                const treatedValues = [];
+                for (let i = 0; i < nPerGroup; i++) {
+                    treatedValues.push(treatedMean + (Math.random() - 0.5) * noiseLevel);
+                }
+                data.treated.push({
+                    year,
+                    mean: treatedValues.reduce((a, b) => a + b) / nPerGroup,
+                    values: treatedValues
+                });
+
+                // 대조군
+                const controlMean = 50 + 5 * year;  // 같은 추세
+                const controlValues = [];
+                for (let i = 0; i < nPerGroup; i++) {
+                    controlValues.push(controlMean + (Math.random() - 0.5) * noiseLevel);
+                }
+                data.control.push({
+                    year,
+                    mean: controlValues.reduce((a, b) => a + b) / nPerGroup,
+                    values: controlValues
+                });
+            }
+
+            // DiD 추정
+            const preIdx = treatmentTiming - 1;
+            const postIdx = years - 1;
+
+            const treatedChange = data.treated[postIdx].mean - data.treated[preIdx].mean;
+            const controlChange = data.control[postIdx].mean - data.control[preIdx].mean;
+            const didEstimate = treatedChange - controlChange;
+
+            // 시각화
+            visualizeDiD(data, treatmentTiming, didEstimate, trueEffect, preTrendViolation);
+        }
+
+        function visualizeDiD(data, treatmentTiming, didEstimate, trueEffect, preTrendViolation) {
+            const canvas = document.getElementById('did-canvas');
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const width = canvas.width;
+            const height = canvas.height;
+            const margin = { top: 40, right: 40, bottom: 60, left: 60 };
+            const plotWidth = width - margin.left - margin.right;
+            const plotHeight = height - margin.top - margin.bottom;
+
+            // Scales
+            const years = data.treated.length;
+            const allMeans = [...data.treated, ...data.control].map(d => d.mean);
+            const yMin = Math.min(...allMeans) - 10;
+            const yMax = Math.max(...allMeans) + 10;
+
+            const xScale = (year) => margin.left + (year / (years - 1)) * plotWidth;
+            const yScale = (y) => margin.top + plotHeight - ((y - yMin) / (yMax - yMin)) * plotHeight;
+
+            // Draw axes
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin.left, margin.top);
+            ctx.lineTo(margin.left, margin.top + plotHeight);
+            ctx.lineTo(margin.left + plotWidth, margin.top + plotHeight);
+            ctx.stroke();
+
+            // Draw treatment timing line
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(xScale(treatmentTiming - 0.5), margin.top);
+            ctx.lineTo(xScale(treatmentTiming - 0.5), margin.top + plotHeight);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw lines
+            // Treated group
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            data.treated.forEach((d, i) => {
+                const x = xScale(d.year);
+                const y = yScale(d.mean);
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+
+            // Control group
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            data.control.forEach((d, i) => {
+                const x = xScale(d.year);
+                const y = yScale(d.mean);
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+
+            // Draw points
+            data.treated.forEach(d => {
+                ctx.fillStyle = '#e74c3c';
+                ctx.beginPath();
+                ctx.arc(xScale(d.year), yScale(d.mean), 5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+            data.control.forEach(d => {
+                ctx.fillStyle = '#3498db';
+                ctx.beginPath();
+                ctx.arc(xScale(d.year), yScale(d.mean), 5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+            // Labels
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Difference-in-Differences Simulation', width / 2, 25);
+
+            ctx.font = '14px Arial';
+            ctx.fillText('Year', width / 2, height - 20);
+
+            ctx.save();
+            ctx.translate(20, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Outcome', 0, 0);
+            ctx.restore();
+
+            // Legend
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillText('■ Treated', width - 150, margin.top + 20);
+            ctx.fillStyle = '#3498db';
+            ctx.fillText('■ Control', width - 150, margin.top + 40);
+
+            // Treatment line label
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Treatment', xScale(treatmentTiming - 0.5), margin.top - 10);
+
+            // Display results
+            const bias = didEstimate - trueEffect;
+            const parallelTrendsValid = Math.abs(preTrendViolation) < 0.5;
+
+            let html = `
+                <strong>설정한 진짜 처치 효과:</strong> ${trueEffect.toFixed(1)}<br>
+                <strong>DiD 추정 효과:</strong> ${didEstimate.toFixed(2)}<br>
+                <strong>편향:</strong> ${bias.toFixed(2)}<br><br>
+
+                <strong>사전 추세 위배 정도:</strong> ${preTrendViolation.toFixed(1)}<br>
+            `;
+
+            if (parallelTrendsValid && Math.abs(bias) < 3) {
+                html += '<span style="color: #27ae60;">✓ 평행 추세가 만족되어 추정이 정확합니다!</span>';
+            } else if (!parallelTrendsValid) {
+                html += '<span style="color: #e74c3c;">⚠️ 평행 추세 가정이 위배되어 편향이 발생했습니다!</span>';
+            } else {
+                html += '<span style="color: #f39c12;">⚠️ 추정에 약간의 오차가 있습니다. (샘플링 노이즈)</span>';
+            }
+
+            document.getElementById('did-stats').innerHTML = html;
+        }
+
+        // Event listeners
+        document.getElementById('true-effect-did').addEventListener('input', (e) => {
+            document.getElementById('true-effect-value').textContent = e.target.value;
+        });
+
+        document.getElementById('pre-trend-violation').addEventListener('input', (e) => {
+            document.getElementById('pre-trend-value').textContent = e.target.value;
+        });
+
+        document.getElementById('treatment-timing').addEventListener('input', (e) => {
+            document.getElementById('timing-value').textContent = e.target.value;
+        });
+
+        document.getElementById('noise-level').addEventListener('input', (e) => {
+            document.getElementById('noise-value').textContent = e.target.value;
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            runDiDSimulation();
+        });
+    </script>
 </body>
 </html>
