@@ -5,95 +5,1429 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chapter 11: 합성 통제법</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <nav class="navbar">
         <div class="navbar-container">
             <h1>🎓 Causal Inference 학습 가이드</h1>
+            <ul class="nav-links">
+                <li><a href="../index.html">홈</a></li>
+                <li><a href="#content">학습내용</a></li>
+                <li><a href="#interactive">실습</a></li>
+                <li><a href="#quiz">퀴즈</a></li>
+            </ul>
         </div>
     </nav>
+
     <div class="container">
         <div class="chapter-header">
             <span class="badge advanced">고급 - Chapter 11</span>
             <h1>합성 통제법 (Synthetic Control Method)</h1>
             <p class="lead">단일 처치 단위의 인과 효과 추정을 위한 혁신적 방법</p>
+
+            <div class="chapter-nav">
+                <a href="10-did.html" class="btn">← 이전 챕터</a>
+                <a href="12-mediation.html" class="btn btn-success">다음 챕터 →</a>
+            </div>
+        </div>
+
+        <div class="content-section" id="content">
+            <h2>📖 학습 목표</h2>
+            <ul>
+                <li>합성 통제법(SCM)의 핵심 개념과 단일 처치 단위 문제 이해</li>
+                <li>가중치 최적화 방법 학습</li>
+                <li>Placebo 테스트를 통한 통계적 추론 방법 습득</li>
+                <li>실제 연구 사례 분석 (바스크 지역, Proposition 99)</li>
+                <li>Python/R 구현 및 확장 방법론 학습</li>
+            </ul>
         </div>
 
         <div class="content-section">
             <h2>🎯 왜 합성 통제법인가?</h2>
+
             <p>
-                정책이나 사건이 <strong>하나의 지역/국가/조직</strong>에만 영향을 미칠 때,
-                적절한 비교 대상(대조군)을 찾기 어렵습니다. 합성 통제법은
-                여러 미처치 단위의 <strong>가중 평균</strong>으로 합성 대조군을 만듭니다.
+                <strong>합성 통제법(Synthetic Control Method, SCM)</strong>은
+                정책이나 사건이 <strong>단 하나의 단위</strong>(국가, 주, 도시 등)에만 영향을 미칠 때
+                인과 효과를 추정하는 혁신적인 방법입니다.
             </p>
 
-            <h3>핵심 아이디어</h3>
-            <div class="equation">
-                <p><strong>합성 통제:</strong></p>
-                <p>Ŷ<sub>0t</sub> = Σ w<sub>j</sub> Y<sub>jt</sub></p>
-                <p style="font-size: 0.9rem; margin-top: 1rem;">
-                    w<sub>j</sub>: 최적 가중치 (w<sub>j</sub> ≥ 0, Σw<sub>j</sub> = 1)<br>
-                    처치 전 기간에 처치 단위와 가장 유사하도록 선택
+            <div class="info-box note">
+                <h4>💡 핵심 아이디어</h4>
+                <p>
+                    <strong>문제:</strong> 캘리포니아주만 금연법을 시행했다면, 무엇과 비교해야 할까요?
+                </p>
+                <p style="margin-top: 1rem;">
+                    <strong>해결책:</strong> 다른 여러 주들의 가중 평균으로 "합성 캘리포니아"를 만들어,
+                    실제 캘리포니아와 비교합니다!
                 </p>
             </div>
 
-            <h3>가중치 최적화</h3>
+            <h3>전통적 방법의 한계</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>❌ 단순 DiD의 문제</h4>
+                    <p><strong>문제:</strong></p>
+                    <ul>
+                        <li>적절한 단일 대조군을 찾기 어려움</li>
+                        <li>어떤 주도 캘리포니아와 완벽히 유사하지 않음</li>
+                        <li>평행 추세 가정이 의심스러움</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h4>✅ Synthetic Control의 장점</h4>
+                    <p><strong>해결책:</strong></p>
+                    <ul>
+                        <li>여러 대조 단위의 가중 평균 사용</li>
+                        <li>처치 전 기간에 최적으로 맞춤</li>
+                        <li>명확한 비교 대상 생성</li>
+                        <li>투명한 가중치</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3>언제 Synthetic Control을 사용하나?</h3>
+
+            <div class="info-box tip">
+                <p><strong>적합한 상황:</strong></p>
+                <ul>
+                    <li>처치 단위가 <strong>1개</strong> (또는 매우 적음)</li>
+                    <li>대조 풀에 여러 미처치 단위 존재</li>
+                    <li>처치 전 기간의 데이터가 충분함</li>
+                    <li>처치가 <strong>집합 수준</strong>에서 발생 (국가, 주, 도시)</li>
+                </ul>
+            </div>
+
+            <h3>실생활 예시</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>연구</th>
+                        <th>처치 단위</th>
+                        <th>처치</th>
+                        <th>결과</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Abadie et al. (2010)</td>
+                        <td>캘리포니아</td>
+                        <td>Proposition 99 (담배세)</td>
+                        <td>담배 소비</td>
+                    </tr>
+                    <tr>
+                        <td>Abadie et al. (2003)</td>
+                        <td>바스크 지역</td>
+                        <td>테러 시작</td>
+                        <td>1인당 GDP</td>
+                    </tr>
+                    <tr>
+                        <td>Abadie et al. (2015)</td>
+                        <td>독일</td>
+                        <td>통일</td>
+                        <td>경제 성장</td>
+                    </tr>
+                    <tr>
+                        <td>Cavallo et al. (2013)</td>
+                        <td>재해 피해 국가</td>
+                        <td>자연재해</td>
+                        <td>GDP</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="content-section">
+            <h2>📐 Synthetic Control의 수학적 구조</h2>
+
+            <h3>기본 설정</h3>
+
+            <p><strong>데이터 구조:</strong></p>
+            <ul>
+                <li><strong>J+1</strong> 개 단위 (1개 처치 + J개 대조)</li>
+                <li><strong>T</strong> 개 시점 (T₀ 처치 전 + T₁ 처치 후)</li>
+                <li>단위 1이 T₀+1 시점에 처치</li>
+            </ul>
+
+            <div class="equation">
+                <h4>반사실 결과</h4>
+                <p>처치 단위의 처치 없었을 때 결과:</p>
+                <p>Y<sub>1t</sub>(0) = δ<sub>t</sub> + θ<sub>t</sub>Z<sub>1</sub> + λ<sub>t</sub>μ<sub>1</sub> + ε<sub>1t</sub></p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    δ<sub>t</sub>: 시간 고정효과<br>
+                    Z<sub>1</sub>: 관측된 공변량<br>
+                    λ<sub>t</sub>μ<sub>1</sub>: 관측되지 않은 요인<br>
+                    ε<sub>1t</sub>: 일시적 충격
+                </p>
+            </div>
+
+            <h3>합성 통제 구성</h3>
+
+            <p>
+                대조군의 <strong>가중 평균</strong>으로 합성 대조군을 만듭니다:
+            </p>
+
+            <div class="equation">
+                <p><strong>가중치 벡터 W:</strong></p>
+                <p>W = (w<sub>2</sub>, w<sub>3</sub>, ..., w<sub>J+1</sub>)</p>
+                <p style="margin-top: 1rem;">
+                    제약조건:<br>
+                    w<sub>j</sub> ≥ 0 (음수 불가)<br>
+                    Σw<sub>j</sub> = 1 (합이 1)
+                </p>
+            </div>
+
+            <div class="equation">
+                <p><strong>합성 결과:</strong></p>
+                <p>Ŷ<sub>1t</sub>(0) = Σ<sub>j=2</sub><sup>J+1</sup> w<sub>j</sub> Y<sub>jt</sub></p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    합성 대조군 = 실제 대조군들의 가중 평균
+                </p>
+            </div>
+
+            <h3>처치 효과 추정</h3>
+
+            <div class="equation">
+                <p>α̂<sub>1t</sub> = Y<sub>1t</sub> - Ŷ<sub>1t</sub>(0)</p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    = 실제 처치 단위 - 합성 대조군
+                </p>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>⚙️ 가중치 최적화</h2>
+
+            <p>
+                핵심 질문: <strong>어떻게 최적의 가중치 W를 선택할 것인가?</strong>
+            </p>
+
+            <h3>방법 1: 결과 변수 매칭</h3>
+
+            <p>
+                처치 전 기간의 결과 변수를 최대한 잘 맞추는 가중치를 찾습니다.
+            </p>
+
+            <div class="equation">
+                <p>min<sub>W</sub> Σ<sub>t=1</sub><sup>T₀</sup> (Y<sub>1t</sub> - Σw<sub>j</sub>Y<sub>jt</sub>)²</p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    처치 전 기간의 평균 제곱 오차 최소화
+                </p>
+            </div>
+
+            <h3>방법 2: 예측 변수 매칭 (Abadie et al.)</h3>
+
+            <p>
+                결과 변수의 <strong>예측 변수</strong>(공변량)들을 맞춥니다.
+            </p>
+
             <div class="equation">
                 <p>min<sub>W</sub> ||X<sub>1</sub> - X<sub>0</sub>W||<sub>V</sub></p>
-                <p style="font-size: 0.9rem;">
-                    X<sub>1</sub>: 처치 단위의 예측 변수<br>
-                    X<sub>0</sub>: 대조 풀의 예측 변수<br>
-                    V: 가중치 행렬
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    X<sub>1</sub>: 처치 단위의 예측 변수 (k×1 벡터)<br>
+                    X<sub>0</sub>: 대조 풀의 예측 변수 (k×J 행렬)<br>
+                    V: 예측 변수 가중치 행렬 (k×k)
+                </p>
+            </div>
+
+            <p><strong>예측 변수 예시:</strong></p>
+            <ul>
+                <li>처치 전 여러 시점의 결과 변수</li>
+                <li>인구, GDP, 교육 수준 등 공변량</li>
+                <li>산업 구조, 지리적 특성</li>
+            </ul>
+
+            <div class="info-box tip">
+                <h4>💡 V 행렬 선택</h4>
+                <p>
+                    V 행렬은 각 예측 변수의 중요도를 결정합니다.
+                </p>
+                <p><strong>일반적 방법:</strong></p>
+                <ul>
+                    <li><strong>Data-driven:</strong> 처치 전 결과 변수의 MSPE를 최소화하는 V 선택</li>
+                    <li><strong>Equal weights:</strong> V = I (모든 변수에 동일 가중치)</li>
+                    <li><strong>Regression:</strong> 회귀계수를 기반으로 V 설정</li>
+                </ul>
+            </div>
+
+            <h3>실제 최적화 과정</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>Step 1: V 선택</h4>
+                    <p>
+                        처치 전 기간의 결과 변수 예측 정확도를 최대화하는 V를 찾습니다.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h4>Step 2: W 계산</h4>
+                    <p>
+                        선택된 V에 대해 ||X₁ - X₀W||_V를 최소화하는 W를 계산합니다.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h4>Step 3: 검증</h4>
+                    <p>
+                        합성 대조군이 처치 단위를 얼마나 잘 재현하는지 확인합니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="interactive-box" id="interactive">
+            <h3>🔬 Interactive 데모: Synthetic Control 시뮬레이션</h3>
+            <p>합성 대조군이 어떻게 구성되는지 시뮬레이션해보세요.</p>
+
+            <div class="simulation-container">
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="treatment-effect-sc">처치 효과 크기: <span id="te-sc-value">-15</span></label>
+                        <input type="range" id="treatment-effect-sc" min="-30" max="30" step="5" value="-15">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="pre-match-quality">사전 매칭 품질: <span id="match-value">0.9</span></label>
+                        <input type="range" id="pre-match-quality" min="0.5" max="1" step="0.1" value="0.9">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="treatment-time-sc">처치 시점: <span id="treat-time-value">10</span></label>
+                        <input type="range" id="treatment-time-sc" min="8" max="12" step="1" value="10">
+                    </div>
+
+                    <div class="control-group">
+                        <button class="btn" onclick="runSCSimulation()">시뮬레이션 실행</button>
+                    </div>
+                </div>
+
+                <div id="sc-visualization">
+                    <canvas id="sc-canvas" width="800" height="500"></canvas>
+                </div>
+
+                <div class="output-display" id="sc-results">
+                    <p><strong>합성 통제 결과:</strong></p>
+                    <div id="sc-stats"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📊 통계적 추론: Placebo Tests</h2>
+
+            <p>
+                Synthetic Control은 <strong>단일 처치 단위</strong>를 다루므로
+                전통적인 표준오차나 p-값 계산이 불가능합니다.
+            </p>
+
+            <div class="info-box warning">
+                <h4>⚠️ 통계적 추론의 문제</h4>
+                <p>
+                    N=1 (처치 단위 1개)이므로 중심극한정리를 적용할 수 없습니다.
+                    대신 <strong>Placebo tests</strong>로 추론합니다.
+                </p>
+            </div>
+
+            <h3>1. In-Space Placebo Test</h3>
+
+            <p>
+                <strong>아이디어:</strong> 대조 풀의 각 단위를 "가짜 처치 단위"로 가정하고
+                동일한 분석을 반복합니다.
+            </p>
+
+            <div class="info-box note">
+                <h4>절차:</h4>
+                <ol>
+                    <li>대조군 j를 처치 단위로 가정</li>
+                    <li>나머지 대조군으로 합성 j 생성</li>
+                    <li>처치 효과 α̂<sub>j</sub> 계산</li>
+                    <li>모든 j에 대해 반복</li>
+                </ol>
+                <p style="margin-top: 1rem;">
+                    <strong>결과:</strong> J+1개의 처치 효과 분포 생성
+                </p>
+            </div>
+
+            <p><strong>해석:</strong></p>
+            <ul>
+                <li>실제 처치 단위의 효과가 placebo 효과들보다 <strong>극단적</strong>이면 유의미</li>
+                <li>P-value = (실제보다 큰 placebo 효과의 수) / (전체 단위 수)</li>
+            </ul>
+
+            <div class="equation">
+                <p>p-value = (Σ I(|α̂<sub>j</sub>| ≥ |α̂<sub>1</sub>|)) / (J+1)</p>
+            </div>
+
+            <h3>2. In-Time Placebo Test</h3>
+
+            <p>
+                <strong>아이디어:</strong> 처치 전 시점에 가짜 처치를 설정하여
+                방법이 거짓 양성을 만들어내는지 확인합니다.
+            </p>
+
+            <div class="info-box note">
+                <h4>절차:</h4>
+                <ol>
+                    <li>처치 전 시점 t' &lt; T₀를 가짜 처치 시점으로 설정</li>
+                    <li>t'까지만 데이터 사용하여 합성 대조군 구성</li>
+                    <li>t' 이후의 "처치 효과" 계산</li>
+                    <li>효과가 0에 가까워야 함</li>
+                </ol>
+                <p style="margin-top: 1rem;">
+                    <strong>결과:</strong> 0에서 유의하게 다르면 사전 매칭이 불량하거나 방법이 부적절
+                </p>
+            </div>
+
+            <h3>시각적 검증</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>Gap Plot</h4>
+                    <p>
+                        처치 단위와 합성 대조군의 차이를 시간에 따라 그립니다.
+                    </p>
+                    <p style="margin-top: 1rem; color: #27ae60;">
+                        처치 전: 차이가 0에 가까워야 함<br>
+                        처치 후: 차이가 크면 처치 효과
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h4>Placebo Gap Plot</h4>
+                    <p>
+                        모든 placebo 단위들의 gap을 함께 그립니다.
+                    </p>
+                    <p style="margin-top: 1rem; color: #e74c3c;">
+                        실제 처치 단위의 gap이 다른 것들보다 크게 튀어야 유의미
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>💻 Python 구현</h2>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+
+# =========================================
+# 데이터 생성 (예시)
+# =========================================
+
+np.random.seed(42)
+
+# 단위: 1개 처치 + 10개 대조
+# 시점: 20개 (10개 전 + 10개 후)
+n_donors = 10
+T = 20
+T0 = 10  # 처치 전 기간
+
+# 결과 변수 생성
+data = pd.DataFrame()
+
+# 처치 단위
+treated_pre = 100 + 2 * np.arange(T0) + np.random.normal(0, 3, T0)
+treated_post = treated_pre[-1] + 2 * np.arange(1, T-T0+1) - 15 + np.random.normal(0, 3, T-T0)
+# 처치 효과 = -15
+
+treated = np.concatenate([treated_pre, treated_post])
+data['treated'] = treated
+
+# 대조 단위들
+for j in range(n_donors):
+    # 각 대조군은 약간 다른 수준과 추세
+    level = np.random.uniform(80, 120)
+    trend = np.random.uniform(1.5, 2.5)
+
+    donor = level + trend * np.arange(T) + np.random.normal(0, 3, T)
+    data[f'donor_{j+1}'] = donor
+
+data['time'] = np.arange(T)
+data['post'] = (data['time'] >= T0).astype(int)
+
+# =========================================
+# Synthetic Control 추정
+# =========================================
+
+# 예측 변수: 처치 전 결과 변수
+X1 = treated_pre.reshape(-1, 1)  # k×1
+X0 = data[[f'donor_{j+1}' for j in range(n_donors)]].iloc[:T0].values.T  # k×J
+
+# 목적 함수: ||X1 - X0*W||^2
+def objective(W):
+    return np.sum((X1.flatten() - X0.T @ W)**2)
+
+# 제약조건
+constraints = [
+    {'type': 'eq', 'fun': lambda W: np.sum(W) - 1}  # 합 = 1
+]
+bounds = [(0, 1) for _ in range(n_donors)]  # 0 <= w_j <= 1
+
+# 초기값
+W0 = np.ones(n_donors) / n_donors
+
+# 최적화
+result = minimize(objective, W0, method='SLSQP',
+                  bounds=bounds, constraints=constraints)
+
+weights = result.x
+print("Optimal weights:")
+for j, w in enumerate(weights):
+    if w > 0.01:  # 의미있는 가중치만 출력
+        print(f"  Donor {j+1}: {w:.3f}")
+
+# 합성 대조군 생성
+synthetic_control = data[[f'donor_{j+1}' for j in range(n_donors)]].values @ weights
+
+# =========================================
+# 처치 효과 추정
+# =========================================
+
+treatment_effect = treated - synthetic_control
+post_treatment_effect = treatment_effect[T0:].mean()
+
+print(f"\nAverage post-treatment effect: {post_treatment_effect:.2f}")
+print(f"True effect: -15.00")
+
+# =========================================
+# 시각화
+# =========================================
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# 원본 vs 합성
+ax1 = axes[0]
+ax1.plot(data['time'], treated, 'o-', label='Treated', linewidth=2, color='#e74c3c')
+ax1.plot(data['time'], synthetic_control, 's--', label='Synthetic Control',
+         linewidth=2, color='#3498db')
+ax1.axvline(x=T0-0.5, color='gray', linestyle='--', alpha=0.7, label='Treatment')
+ax1.set_xlabel('Time')
+ax1.set_ylabel('Outcome')
+ax1.set_title('Treated vs Synthetic Control')
+ax1.legend()
+ax1.grid(alpha=0.3)
+
+# Gap (처치 효과)
+ax2 = axes[1]
+ax2.plot(data['time'], treatment_effect, 'o-', linewidth=2, color='#2c3e50')
+ax2.axvline(x=T0-0.5, color='gray', linestyle='--', alpha=0.7)
+ax2.axhline(y=0, color='red', linestyle='--', alpha=0.7)
+ax2.fill_between(data['time'][T0:], 0, treatment_effect[T0:],
+                  alpha=0.3, color='#e74c3c')
+ax2.set_xlabel('Time')
+ax2.set_ylabel('Gap (Treated - Synthetic)')
+ax2.set_title('Treatment Effect Over Time')
+ax2.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# =========================================
+# In-Space Placebo Test
+# =========================================
+
+placebo_effects = []
+
+for j in range(n_donors):
+    # Donor j를 처치 단위로 가정
+    placebo_treated = data[f'donor_{j+1}'].values
+
+    # 나머지 donors로 합성 대조군 구성
+    other_donors = [f'donor_{k+1}' for k in range(n_donors) if k != j]
+
+    X1_placebo = placebo_treated[:T0].reshape(-1, 1)
+    X0_placebo = data[other_donors].iloc[:T0].values.T
+
+    def obj_placebo(W):
+        return np.sum((X1_placebo.flatten() - X0_placebo.T @ W)**2)
+
+    constraints_p = [{'type': 'eq', 'fun': lambda W: np.sum(W) - 1}]
+    bounds_p = [(0, 1) for _ in range(len(other_donors))]
+    W0_p = np.ones(len(other_donors)) / len(other_donors)
+
+    result_p = minimize(obj_placebo, W0_p, method='SLSQP',
+                        bounds=bounds_p, constraints=constraints_p)
+
+    synthetic_p = data[other_donors].values @ result_p.x
+    gap_p = placebo_treated - synthetic_p
+
+    # 처치 후 평균 효과
+    placebo_effect = gap_p[T0:].mean()
+    placebo_effects.append(placebo_effect)
+
+# P-value 계산
+observed_effect = np.abs(post_treatment_effect)
+extreme_count = np.sum(np.abs(placebo_effects) >= observed_effect)
+p_value = (extreme_count + 1) / (n_donors + 1)
+
+print(f"\nPlacebo test p-value: {p_value:.3f}")
+
+# 시각화
+plt.figure(figsize=(10, 6))
+plt.hist(placebo_effects, bins=15, alpha=0.6, color='#3498db',
+         label='Placebo effects')
+plt.axvline(x=post_treatment_effect, color='#e74c3c', linewidth=3,
+            label=f'Actual effect: {post_treatment_effect:.2f}')
+plt.xlabel('Treatment Effect')
+plt.ylabel('Frequency')
+plt.title('In-Space Placebo Distribution')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.show()</code></pre>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>💻 R 구현</h2>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(Synth)
+library(ggplot2)
+library(dplyr)
+
+# =========================================
+# 데이터 준비
+# =========================================
+
+# Synth 패키지에 내장된 바스크 데이터 사용
+data("basque")
+
+# 데이터 전처리
+dataprep_out <- dataprep(
+  foo = basque,
+  predictors = c("school.illit", "school.prim", "school.med",
+                 "school.high", "school.post.high", "invest"),
+  predictors.op = "mean",
+  time.predictors.prior = 1964:1969,
+  special.predictors = list(
+    list("gdpcap", 1960:1969, "mean"),
+    list("sec.agriculture", seq(1961, 1969, 2), "mean"),
+    list("sec.energy", seq(1961, 1969, 2), "mean"),
+    list("sec.industry", seq(1961, 1969, 2), "mean"),
+    list("sec.construction", seq(1961, 1969, 2), "mean"),
+    list("sec.services.venta", seq(1961, 1969, 2), "mean"),
+    list("sec.services.nonventa", seq(1961, 1969, 2), "mean"),
+    list("popdens", 1969, "mean")
+  ),
+  dependent = "gdpcap",
+  unit.variable = "regionno",
+  unit.names.variable = "regionname",
+  time.variable = "year",
+  treatment.identifier = 17,  # Basque Country
+  controls.identifier = c(2:16, 18),  # 다른 스페인 지역들
+  time.optimize.ssr = 1960:1969,
+  time.plot = 1955:1997
+)
+
+# =========================================
+# Synthetic Control 추정
+# =========================================
+
+synth_out <- synth(dataprep_out)
+
+# 가중치 확인
+print("Synthetic control weights:")
+synth.tables <- synth.tab(
+  dataprep.res = dataprep_out,
+  synth.res = synth_out
+)
+
+print(synth.tables$tab.w)  # 단위 가중치
+print(synth.tables$tab.v)  # 변수 가중치
+print(synth.tables$tab.pred)  # 예측 변수 균형
+
+# =========================================
+# 시각화
+# =========================================
+
+# 기본 플롯
+path.plot(
+  synth.res = synth_out,
+  dataprep.res = dataprep_out,
+  Ylab = "GDP per capita",
+  Xlab = "Year",
+  Legend = c("Basque Country", "Synthetic Basque Country"),
+  Legend.position = "bottomleft"
+)
+abline(v = 1970, lty = 2, col = "red")  # 테러 시작 시점
+
+# Gap 플롯
+gaps.plot(
+  synth.res = synth_out,
+  dataprep.res = dataprep_out,
+  Ylab = "Gap in GDP per capita",
+  Xlab = "Year",
+  Main = "Treatment Effect Over Time"
+)
+abline(v = 1970, lty = 2, col = "red")
+abline(h = 0, lty = 2)
+
+# =========================================
+# Placebo Tests
+# =========================================
+
+# In-space placebo (모든 대조군에 대해 반복)
+placebo_regions <- c(2:16, 18)
+placebo_results <- list()
+
+for (region in placebo_regions) {
+  # Placebo 처치 단위 설정
+  dataprep_placebo <- dataprep(
+    foo = basque,
+    predictors = c("school.illit", "school.prim", "school.med",
+                   "school.high", "school.post.high", "invest"),
+    predictors.op = "mean",
+    time.predictors.prior = 1964:1969,
+    special.predictors = list(
+      list("gdpcap", 1960:1969, "mean"),
+      list("sec.agriculture", seq(1961, 1969, 2), "mean"),
+      list("sec.energy", seq(1961, 1969, 2), "mean"),
+      list("sec.industry", seq(1961, 1969, 2), "mean"),
+      list("sec.construction", seq(1961, 1969, 2), "mean"),
+      list("sec.services.venta", seq(1961, 1969, 2), "mean"),
+      list("sec.services.nonventa", seq(1961, 1969, 2), "mean"),
+      list("popdens", 1969, "mean")
+    ),
+    dependent = "gdpcap",
+    unit.variable = "regionno",
+    unit.names.variable = "regionname",
+    time.variable = "year",
+    treatment.identifier = region,
+    controls.identifier = setdiff(c(2:16, 18), region),
+    time.optimize.ssr = 1960:1969,
+    time.plot = 1955:1997
+  )
+
+  synth_placebo <- synth(dataprep_placebo, verbose = FALSE)
+
+  placebo_results[[as.character(region)]] <- list(
+    dataprep = dataprep_placebo,
+    synth = synth_placebo
+  )
+}
+
+# Placebo gap 플롯
+gaps_data <- data.frame()
+
+# 실제 처치 단위
+Y1 <- dataprep_out$Y1plot
+Y0 <- dataprep_out$Y0plot %*% synth_out$solution.w
+gap_actual <- Y1 - Y0
+gaps_data <- rbind(gaps_data, data.frame(
+  year = as.numeric(rownames(Y1)),
+  gap = as.numeric(gap_actual),
+  unit = "Basque (Treated)",
+  type = "Treated"
+))
+
+# Placebo 단위들
+for (region in names(placebo_results)) {
+  pr <- placebo_results[[region]]
+  Y1_p <- pr$dataprep$Y1plot
+  Y0_p <- pr$dataprep$Y0plot %*% pr$synth$solution.w
+  gap_p <- Y1_p - Y0_p
+
+  gaps_data <- rbind(gaps_data, data.frame(
+    year = as.numeric(rownames(Y1_p)),
+    gap = as.numeric(gap_p),
+    unit = paste0("Region_", region),
+    type = "Placebo"
+  ))
+}
+
+# 시각화
+ggplot(gaps_data, aes(x = year, y = gap, group = unit, color = type)) +
+  geom_line(data = filter(gaps_data, type == "Placebo"),
+            alpha = 0.3, size = 0.5) +
+  geom_line(data = filter(gaps_data, type == "Treated"),
+            color = "#e74c3c", size = 1.5) +
+  geom_vline(xintercept = 1970, linetype = "dashed") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_color_manual(values = c("Placebo" = "#3498db", "Treated" = "#e74c3c")) +
+  labs(title = "Basque Country vs Placebo Regions",
+       x = "Year", y = "Gap in GDP per capita",
+       color = "Type") +
+  theme_minimal() +
+  theme(legend.position = "bottom")</code></pre>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 실제 연구 사례</h2>
+
+            <h3>1. Abadie et al. (2010) - Proposition 99 (캘리포니아 담배세)</h3>
+
+            <div class="info-box note">
+                <p><strong>연구 질문:</strong> 담배세 인상이 흡연율을 감소시켰는가?</p>
+                <p><strong>처치 단위:</strong> 캘리포니아</p>
+                <p><strong>처치:</strong> 1988년 Proposition 99 (담배세 25센트 인상 + 금연 프로그램)</p>
+                <p><strong>대조 풀:</strong> 미국의 다른 38개 주</p>
+                <p><strong>결과:</strong> 1인당 담배 소비량 (갑/년)</p>
+            </div>
+
+            <p><strong>합성 캘리포니아 구성:</strong></p>
+            <ul>
+                <li>네바다: 0.234</li>
+                <li>콜로라도: 0.164</li>
+                <li>유타: 0.239</li>
+                <li>뉴멕시코: 0.153</li>
+                <li>몬타나: 0.210</li>
+                <li>기타: 0 (사용되지 않음)</li>
+            </ul>
+
+            <p><strong>핵심 발견:</strong></p>
+            <ul>
+                <li>1988년 이후 캘리포니아의 담배 소비가 합성 대조군보다 <strong>약 20갑/년 적음</strong></li>
+                <li>1988년 이전: 실제와 합성이 거의 완벽하게 일치</li>
+                <li>Placebo tests: 다른 주들에서는 이런 효과가 관측되지 않음</li>
+                <li><strong>결론:</strong> Proposition 99가 흡연율 감소에 실제로 기여</li>
+            </ul>
+
+            <h3>2. Abadie & Gardeazabal (2003) - 바스크 지역 테러와 경제</h3>
+
+            <div class="info-box note">
+                <p><strong>연구 질문:</strong> 테러 활동이 경제 성장에 미친 영향은?</p>
+                <p><strong>처치 단위:</strong> 바스크 지역 (스페인)</p>
+                <p><strong>처치:</strong> 1970년대 초 ETA 테러 활동 격화</p>
+                <p><strong>대조 풀:</strong> 스페인의 다른 16개 지역</p>
+                <p><strong>결과:</strong> 1인당 GDP</p>
+            </div>
+
+            <p><strong>합성 바스크 구성:</strong></p>
+            <ul>
+                <li>카탈루냐: 0.851</li>
+                <li>마드리드: 0.149</li>
+                <li>기타: 0</li>
+            </ul>
+
+            <p><strong>핵심 발견:</strong></p>
+            <ul>
+                <li>1970년 이전: 합성과 실제가 거의 완벽 일치</li>
+                <li>1975년 이후: 실제 바스크 GDP가 합성보다 <strong>약 10% 낮음</strong></li>
+                <li>1인당 GDP 손실: 약 $2,000-3,000</li>
+                <li>1998년 휴전 기간: Gap이 일시적으로 감소 (역효과 증거)</li>
+                <li><strong>결론:</strong> 테러가 경제에 상당한 부정적 영향</li>
+            </ul>
+
+            <h3>3. Abadie et al. (2015) - 독일 통일의 경제적 효과</h3>
+
+            <div class="info-box note">
+                <p><strong>연구 질문:</strong> 독일 통일이 서독 경제에 미친 영향은?</p>
+                <p><strong>처치 단위:</strong> 서독</p>
+                <p><strong>처치:</strong> 1990년 독일 통일</p>
+                <p><strong>대조 풀:</strong> OECD 국가들</p>
+                <p><strong>결과:</strong> 1인당 GDP</p>
+            </div>
+
+            <p><strong>핵심 발견:</strong></p>
+            <ul>
+                <li>통일 직후: 서독 GDP가 합성 대조군보다 약간 낮음</li>
+                <li>2000년대 초반: Gap이 최대 약 12%</li>
+                <li>2000년대 중반 이후: Gap 감소, 회복 조짐</li>
+                <li><strong>결론:</strong> 통일이 서독 경제에 단기적으로 부담, 장기적으로는 회복</li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>🆕 확장 방법론</h2>
+
+            <h3>1. Augmented Synthetic Control (Ben-Michael et al., 2021)</h3>
+
+            <div class="info-box tip">
+                <p><strong>아이디어:</strong> Synthetic Control + Outcome Regression</p>
+                <p>
+                    합성 대조군이 완벽하지 않을 때 회귀 조정을 추가하여 편향을 줄입니다.
                 </p>
             </div>
 
             <div class="code-block">
-                <span class="language-badge">Python</span>
-                <pre><code>from SyntheticControlMethods import Synth
+                <span class="language-badge">R</span>
+                <pre><code>library(augsynth)
 
-# 합성 통제
-sc = Synth(
-    dataprep_out=dataprep,
-    optim_method='Nelder-Mead'
+# Augmented Synthetic Control
+aug_syn <- augsynth(
+  gdpcap ~ treatment | regionno + year,
+  data = panel_data,
+  progfunc = "Ridge",  # Ridge regression for augmentation
+  scm = TRUE
 )
 
-# 가중치 추정
-sc.fit()
-
-# 효과 추정
-treatment_effect = sc.att()</code></pre>
+summary(aug_syn)</code></pre>
             </div>
 
-            <h3>통계적 추론: Placebo Tests</h3>
-            <p>
-                전통적 통계적 추론이 불가능하므로 <strong>위약 검정</strong>을 사용합니다.
-            </p>
-            <ul>
-                <li><strong>In-space placebo:</strong> 각 대조 단위를 처치 단위로 가정</li>
-                <li><strong>In-time placebo:</strong> 가짜 처치 시점 설정</li>
-            </ul>
+            <h3>2. Penalized Synthetic Control (Abadie & L'Hour, 2021)</h3>
 
-            <h3>대표 연구: Abadie et al. (2003) - 테러와 경제</h3>
-            <p>
-                바스크 지역의 테러가 경제에 미친 영향<br>
-                처치: 바스크, 대조: 스페인 다른 지역들의 가중 평균<br>
-                결과: 1인당 GDP 약 10% 감소
-            </p>
+            <div class="info-box tip">
+                <p><strong>아이디어:</strong> L1/L2 정규화로 가중치를 희소하게 만들기</p>
+                <p>
+                    적은 수의 대조 단위만 사용하도록 유도하여 해석 가능성 향상
+                </p>
+            </div>
 
-            <h3>확장 방법</h3>
+            <h3>3. Matrix Completion (Athey et al., 2021)</h3>
+
+            <div class="info-box tip">
+                <p><strong>아이디어:</strong> 여러 처치 단위를 동시에 다루기</p>
+                <p>
+                    패널 데이터를 저차원 행렬로 근사하여 반사실 결과 추정
+                </p>
+            </div>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code>library(gsynth)
+
+# Generalized Synthetic Control (Matrix Completion)
+gsynth_out <- gsynth(
+  Y ~ D + X1 + X2,
+  data = panel_data,
+  index = c("unit", "time"),
+  force = "two-way",  # Two-way fixed effects
+  CV = TRUE,  # Cross-validation for factors
+  r = c(0, 5),  # Number of factors to try
+  se = TRUE,
+  inference = "parametric",
+  nboots = 1000
+)
+
+plot(gsynth_out, type = "gap")</code></pre>
+            </div>
+
+            <h3>4. Robust Synthetic Control</h3>
+
             <ul>
-                <li><strong>Augmented SC (Ben-Michael et al., 2021):</strong> 회귀 조정 추가</li>
-                <li><strong>Penalized SC (Abadie & L'Hour, 2021):</strong> 정규화</li>
-                <li><strong>Matrix Completion:</strong> 다중 처치 단위</li>
+                <li><strong>Trimmed weights:</strong> 극단적인 가중치 제거</li>
+                <li><strong>Multiple pre-periods:</strong> 여러 사전 기간으로 안정성 확인</li>
+                <li><strong>Placebo-based inference:</strong> 더 보수적인 추론</li>
             </ul>
         </div>
 
-        <div class="chapter-nav">
-            <a href="10-did.html" class="btn">← Chapter 10</a>
-            <a href="12-mediation.html" class="btn btn-success">Chapter 12: 매개 분석 →</a>
+        <div class="content-section">
+            <h2>⚠️ Synthetic Control 사용 시 주의사항</h2>
+
+            <h3>1. 사전 매칭 품질</h3>
+
+            <div class="info-box warning">
+                <p><strong>문제:</strong> 합성 대조군이 처치 전 기간을 잘 재현하지 못하면 추정이 편향됩니다.</p>
+                <p><strong>해결책:</strong></p>
+                <ul>
+                    <li>처치 전 RMSPE (Root Mean Squared Prediction Error) 확인</li>
+                    <li>시각적으로 처치 전 추세 비교</li>
+                    <li>RMSPE가 크면 결과 신뢰하기 어려움</li>
+                </ul>
+            </div>
+
+            <h3>2. 외삽 (Extrapolation) 문제</h3>
+
+            <div class="info-box warning">
+                <p>
+                    처치 단위가 대조 풀의 <strong>볼록 껍질(convex hull) 밖</strong>에 있으면 외삽이 발생합니다.
+                </p>
+                <p><strong>예시:</strong></p>
+                <ul>
+                    <li>처치 단위의 특성이 극단적 (모든 대조군보다 높거나 낮음)</li>
+                    <li>이 경우 합성 대조군이 처치 단위를 잘 재현하기 어려움</li>
+                </ul>
+                <p><strong>해결책:</strong></p>
+                <ul>
+                    <li>예측 변수 테이블에서 처치 단위가 대조 풀 범위 내에 있는지 확인</li>
+                    <li>범위 밖이면 결과 해석에 주의</li>
+                </ul>
+            </div>
+
+            <h3>3. 희소한 가중치 (Sparse Weights)</h3>
+
+            <div class="info-box tip">
+                <p>
+                    가중치가 <strong>소수의 단위</strong>에 집중되는 것이 일반적이며 바람직합니다.
+                </p>
+                <ul>
+                    <li>해석이 쉬움 (어떤 단위들이 중요한지 명확)</li>
+                    <li>과적합 방지</li>
+                    <li>대부분의 가중치가 0이어도 괜찮음</li>
+                </ul>
+            </div>
+
+            <h3>4. 동시 발생 사건 (Concurrent Events)</h3>
+
+            <div class="info-box warning">
+                <p>
+                    처치 시점에 <strong>다른 사건</strong>도 발생했다면 효과를 분리하기 어렵습니다.
+                </p>
+                <p><strong>예시:</strong></p>
+                <ul>
+                    <li>담배세 인상 + 금연 캠페인 동시 시행</li>
+                    <li>어떤 정책의 효과인지 불명확</li>
+                </ul>
+                <p><strong>해결책:</strong></p>
+                <ul>
+                    <li>배경 지식으로 판단</li>
+                    <li>추가 분석 (시차가 다른 정책 비교)</li>
+                </ul>
+            </div>
+
+            <h3>5. 긴 처치 후 기간</h3>
+
+            <ul>
+                <li>처치 후 기간이 매우 길면 다른 요인들이 개입할 가능성 증가</li>
+                <li>합성 대조군의 외삽이 더 불확실해짐</li>
+                <li><strong>권장:</strong> 단기-중기 효과 추정에 초점</li>
+            </ul>
+        </div>
+
+        <div class="content-section" id="quiz">
+            <h2>📝 퀴즈: 학습 내용 확인</h2>
+
+            <div class="quiz-container">
+                <div class="question">
+                    <h4>Q1. Synthetic Control Method가 적합한 상황은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 처치 단위가 수백 개인 경우
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 처치 단위가 1개이고, 여러 미처치 단위가 있는 경우
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 처치 전 데이터가 없는 경우
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 무작위 배정이 가능한 경우
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        Synthetic Control은 처치 단위가 1개(또는 매우 적음)이고,
+                        여러 미처치 단위가 대조 풀로 존재하며,
+                        처치 전 기간의 데이터가 충분한 경우에 적합합니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q2. 합성 대조군의 가중치에 대한 설명으로 옳은 것은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 모든 대조 단위에 동일한 가중치를 부여해야 한다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 가중치는 0 이상이고 합이 1이어야 하며, 소수의 단위에 집중될 수 있다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 가중치는 음수일 수 있다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 가중치의 합은 100이어야 한다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        합성 대조군의 가중치는 w_j ≥ 0이고 Σw_j = 1입니다.
+                        가중치가 소수의 단위에 집중되는 것(sparse weights)은
+                        일반적이며 해석에도 유리합니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q3. In-Space Placebo Test의 목적은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 최적 가중치를 찾기 위해
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 관측된 효과가 통계적으로 유의미한지 검증하기 위해
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 처치 시점을 결정하기 위해
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 대조군의 수를 늘리기 위해
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        In-Space Placebo Test는 대조 풀의 각 단위를 가짜 처치 단위로 가정하여
+                        동일한 분석을 반복함으로써, 실제 처치 단위의 효과가
+                        우연에 의한 것이 아니라 통계적으로 유의미한지 검증합니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q4. Abadie et al. (2010) Proposition 99 연구의 주요 발견은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 담배세가 흡연에 영향을 미치지 않았다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 담배세 인상으로 캘리포니아의 담배 소비가 유의미하게 감소했다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 합성 대조군을 만들 수 없었다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 다른 주들도 동일한 효과를 보였다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        1988년 Proposition 99 시행 이후 캘리포니아의 담배 소비가
+                        합성 캘리포니아보다 약 20갑/년 적었고,
+                        Placebo tests에서 다른 주들은 이런 효과를 보이지 않아
+                        정책이 실제로 효과가 있었음을 입증했습니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q5. 사전 매칭 품질이 나쁜 경우의 문제점은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 계산 시간이 오래 걸린다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 처치 효과 추정이 편향될 수 있다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 가중치의 합이 1이 되지 않는다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. Placebo test를 수행할 수 없다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        합성 대조군이 처치 전 기간에 처치 단위를 잘 재현하지 못하면
+                        (사전 매칭 품질이 나쁘면), 처치 후 기간의 효과 추정도
+                        신뢰하기 어렵고 편향될 가능성이 높습니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q6. 외삽(Extrapolation) 문제가 발생하는 경우는?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 대조 단위가 너무 많은 경우
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 처치 단위의 특성이 모든 대조 단위의 범위를 벗어난 경우
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 처치 전 기간이 짧은 경우
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 가중치가 균등한 경우
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        처치 단위의 특성(예: GDP, 인구 등)이 모든 대조 단위의 범위를
+                        벗어나면(convex hull 밖에 위치), 합성 대조군을 만들기 위해
+                        외삽이 필요하며, 이는 추정의 신뢰성을 떨어뜨립니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q7. Augmented Synthetic Control의 장점은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 계산이 더 빠르다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 합성 대조군이 불완전할 때 회귀 조정을 통해 편향을 줄인다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 처치 전 데이터가 필요 없다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. Placebo test가 필요 없다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        Augmented Synthetic Control은 전통적 합성 통제법에
+                        회귀 조정(outcome regression)을 결합하여,
+                        합성 대조군이 완벽하지 않을 때도 편향을 줄일 수 있습니다.
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="markChapterComplete(11)" style="margin-top: 2rem;">
+                ✓ Chapter 11 완료하기
+            </button>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 추천 자료</h2>
+
+            <h3>논문</h3>
+            <ul>
+                <li>Abadie, A., Diamond, A., & Hainmueller, J. (2010). "Synthetic control methods for comparative case studies: Estimating the effect of California's tobacco control program." <em>Journal of the American Statistical Association</em>, 105(490), 493-505.</li>
+                <li>Abadie, A., & Gardeazabal, J. (2003). "The economic costs of conflict: A case study of the Basque Country." <em>American Economic Review</em>, 93(1), 113-132.</li>
+                <li>Abadie, A., Diamond, A., & Hainmueller, J. (2015). "Comparative politics and the synthetic control method." <em>American Journal of Political Science</em>, 59(2), 495-510.</li>
+                <li>Ben-Michael, E., Feller, A., & Rothstein, J. (2021). "The augmented synthetic control method." <em>Journal of the American Statistical Association</em>, 116(536), 1789-1803.</li>
+            </ul>
+
+            <h3>책</h3>
+            <ul>
+                <li>Abadie, A. (2021). "Using synthetic controls: Feasibility, data requirements, and methodological aspects." <em>Journal of Economic Literature</em>, 59(2), 391-425.</li>
+                <li>Cunningham, S. (2021). <em>Causal Inference: The Mixtape</em>. Yale University Press. (Chapter 10)</li>
+            </ul>
+
+            <h3>소프트웨어</h3>
+            <ul>
+                <li><strong>R:</strong> Synth, augsynth, gsynth, tidysynth</li>
+                <li><strong>Python:</strong> SynthControlMethods, pysynthcontrol</li>
+                <li><strong>Stata:</strong> synth, synth_runner</li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>🎯 다음 단계</h2>
+            <p>
+                Synthetic Control Method를 마스터했다면, 이제 <strong>매개 분석(Mediation Analysis)</strong>을 배워봅시다.
+                매개 분석은 인과 효과가 어떤 경로를 통해 발생하는지 이해하는 강력한 도구입니다.
+            </p>
+
+            <div class="chapter-nav">
+                <a href="10-did.html" class="btn">← Chapter 10: 이중차분법</a>
+                <a href="12-mediation.html" class="btn btn-success">Chapter 12: 매개 분석 →</a>
+            </div>
         </div>
     </div>
-    <footer><p>&copy; 2024 Causal Inference 학습 가이드</p></footer>
+
+    <footer>
+        <p>&copy; 2024 Causal Inference 학습 가이드</p>
+    </footer>
+
     <script src="../js/main.js"></script>
+    <script src="../js/visualizations.js"></script>
+    <script>
+        // Synthetic Control Simulation
+        function runSCSimulation() {
+            const treatmentEffect = parseFloat(document.getElementById('treatment-effect-sc').value);
+            const matchQuality = parseFloat(document.getElementById('pre-match-quality').value);
+            const treatmentTime = parseInt(document.getElementById('treatment-time-sc').value);
+
+            const T = 20;  // Total time periods
+            const nDonors = 5;
+
+            // Generate treated unit
+            const treated = [];
+            for (let t = 0; t < T; t++) {
+                let value = 100 + 2 * t;
+                if (t >= treatmentTime) {
+                    value += treatmentEffect;
+                }
+                value += (Math.random() - 0.5) * 5;
+                treated.push(value);
+            }
+
+            // Generate donor units
+            const donors = [];
+            for (let d = 0; d < nDonors; d++) {
+                const donor = [];
+                const level = 95 + Math.random() * 10;
+                const trend = 1.8 + Math.random() * 0.4;
+
+                for (let t = 0; t < T; t++) {
+                    let value = level + trend * t;
+                    value += (Math.random() - 0.5) * 5;
+                    donor.push(value);
+                }
+                donors.push(donor);
+            }
+
+            // Create synthetic control (simple average with some noise based on match quality)
+            const synthetic = [];
+            for (let t = 0; t < treatmentTime; t++) {
+                // Try to match treated unit pre-treatment
+                let synth = treated[t] * matchQuality;
+
+                // Add weighted average of donors
+                let donorAvg = 0;
+                for (let d = 0; d < nDonors; d++) {
+                    donorAvg += donors[d][t];
+                }
+                donorAvg /= nDonors;
+
+                synth += donorAvg * (1 - matchQuality);
+                synthetic.push(synth);
+            }
+
+            // Post-treatment: use donor average
+            for (let t = treatmentTime; t < T; t++) {
+                let donorAvg = 0;
+                for (let d = 0; d < nDonors; d++) {
+                    donorAvg += donors[d][t];
+                }
+                synthetic.push(donorAvg / nDonors);
+            }
+
+            // Calculate treatment effect
+            const postEffect = [];
+            for (let t = treatmentTime; t < T; t++) {
+                postEffect.push(treated[t] - synthetic[t]);
+            }
+            const avgEffect = postEffect.reduce((a, b) => a + b, 0) / postEffect.length;
+
+            visualizeSC(treated, synthetic, treatmentTime, avgEffect, treatmentEffect, matchQuality);
+        }
+
+        function visualizeSC(treated, synthetic, treatmentTime, avgEffect, trueEffect, matchQuality) {
+            const canvas = document.getElementById('sc-canvas');
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const width = canvas.width;
+            const height = canvas.height;
+            const margin = { top: 40, right: 40, bottom: 60, left: 60 };
+            const plotWidth = width - margin.left - margin.right;
+            const plotHeight = height - margin.top - margin.bottom;
+
+            const T = treated.length;
+            const allValues = [...treated, ...synthetic];
+            const yMin = Math.min(...allValues) - 10;
+            const yMax = Math.max(...allValues) + 10;
+
+            const xScale = (t) => margin.left + (t / (T - 1)) * plotWidth;
+            const yScale = (y) => margin.top + plotHeight - ((y - yMin) / (yMax - yMin)) * plotHeight;
+
+            // Draw axes
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin.left, margin.top);
+            ctx.lineTo(margin.left, margin.top + plotHeight);
+            ctx.lineTo(margin.left + plotWidth, margin.top + plotHeight);
+            ctx.stroke();
+
+            // Draw treatment line
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(xScale(treatmentTime - 0.5), margin.top);
+            ctx.lineTo(xScale(treatmentTime - 0.5), margin.top + plotHeight);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw lines
+            // Treated
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            treated.forEach((val, t) => {
+                const x = xScale(t);
+                const y = yScale(val);
+                if (t === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+
+            // Synthetic
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            synthetic.forEach((val, t) => {
+                const x = xScale(t);
+                const y = yScale(val);
+                if (t === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+
+            // Draw points
+            treated.forEach((val, t) => {
+                ctx.fillStyle = '#e74c3c';
+                ctx.beginPath();
+                ctx.arc(xScale(t), yScale(val), 4, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+            synthetic.forEach((val, t) => {
+                ctx.fillStyle = '#3498db';
+                ctx.beginPath();
+                ctx.arc(xScale(t), yScale(val), 4, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+            // Labels
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Synthetic Control Simulation', width / 2, 25);
+
+            ctx.font = '14px Arial';
+            ctx.fillText('Time', width / 2, height - 20);
+
+            ctx.save();
+            ctx.translate(20, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Outcome', 0, 0);
+            ctx.restore();
+
+            // Legend
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillText('■ Treated Unit', width - 180, margin.top + 20);
+            ctx.fillStyle = '#3498db';
+            ctx.fillText('■ Synthetic Control', width - 180, margin.top + 40);
+
+            // Display results
+            const bias = avgEffect - trueEffect;
+            const preMatchGood = matchQuality > 0.8;
+
+            let html = `
+                <strong>설정한 진짜 처치 효과:</strong> ${trueEffect.toFixed(1)}<br>
+                <strong>추정된 평균 처치 효과:</strong> ${avgEffect.toFixed(2)}<br>
+                <strong>편향:</strong> ${bias.toFixed(2)}<br><br>
+
+                <strong>사전 매칭 품질:</strong> ${(matchQuality * 100).toFixed(0)}%<br>
+            `;
+
+            if (preMatchGood && Math.abs(bias) < 5) {
+                html += '<span style="color: #27ae60;">✓ 사전 매칭이 우수하여 추정이 정확합니다!</span>';
+            } else if (!preMatchGood) {
+                html += '<span style="color: #e74c3c;">⚠️ 사전 매칭이 불량하여 추정에 편향이 발생할 수 있습니다!</span>';
+            } else {
+                html += '<span style="color: #f39c12;">⚠️ 추정에 약간의 오차가 있습니다.</span>';
+            }
+
+            document.getElementById('sc-stats').innerHTML = html;
+        }
+
+        // Event listeners
+        document.getElementById('treatment-effect-sc').addEventListener('input', (e) => {
+            document.getElementById('te-sc-value').textContent = e.target.value;
+        });
+
+        document.getElementById('pre-match-quality').addEventListener('input', (e) => {
+            document.getElementById('match-value').textContent = e.target.value;
+        });
+
+        document.getElementById('treatment-time-sc').addEventListener('input', (e) => {
+            document.getElementById('treat-time-value').textContent = e.target.value;
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            runSCSimulation();
+        });
+    </script>
 </body>
 </html>

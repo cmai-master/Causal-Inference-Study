@@ -5,84 +5,1298 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chapter 9: 회귀 불연속 설계</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <nav class="navbar">
         <div class="navbar-container">
             <h1>🎓 Causal Inference 학습 가이드</h1>
+            <ul class="nav-links">
+                <li><a href="../index.html">홈</a></li>
+                <li><a href="#content">학습내용</a></li>
+                <li><a href="#interactive">실습</a></li>
+                <li><a href="#quiz">퀴즈</a></li>
+            </ul>
         </div>
     </nav>
+
     <div class="container">
         <div class="chapter-header">
             <span class="badge intermediate">중급 - Chapter 9</span>
             <h1>회귀 불연속 설계 (Regression Discontinuity Design)</h1>
             <p class="lead">임계값 기반 처치 배정의 불연속성을 활용한 준실험 설계</p>
+
+            <div class="chapter-nav">
+                <a href="08-instrumental-variables.html" class="btn">← 이전 챕터</a>
+                <a href="10-did.html" class="btn btn-success">다음 챕터 →</a>
+            </div>
+        </div>
+
+        <div class="content-section" id="content">
+            <h2>📖 학습 목표</h2>
+            <ul>
+                <li>회귀 불연속 설계(RDD)의 핵심 개념과 직관 이해</li>
+                <li>Sharp RDD와 Fuzzy RDD의 차이점 학습</li>
+                <li>RDD의 타당성 가정과 검증 방법 이해</li>
+                <li>대역폭 선택과 추정 방법 학습</li>
+                <li>실제 연구 사례를 통한 RDD 적용 이해</li>
+            </ul>
         </div>
 
         <div class="content-section">
-            <h2>🎯 RDD의 핵심 아이디어</h2>
+            <h2>🎯 RDD란 무엇인가?</h2>
+
             <p>
-                처치 배정이 연속 변수(running variable)의 임계값(cutoff)에 의해 결정될 때,
-                임계값 근처에서 처치군과 대조군은 유사합니다 (국소 무작위화).
+                <strong>회귀 불연속 설계(Regression Discontinuity Design, RDD)</strong>는
+                처치 배정이 연속 변수의 임계값에 의해 결정되는 상황에서 인과 효과를 추정하는
+                준실험 설계(Quasi-experimental design) 방법입니다.
             </p>
 
-            <h3>Sharp RDD vs Fuzzy RDD</h3>
+            <div class="info-box note">
+                <h4>💡 핵심 아이디어</h4>
+                <p>
+                    어떤 점수나 지표가 특정 임계값(cutoff)을 넘으면 처치를 받고,
+                    넘지 못하면 받지 못하는 상황을 생각해보세요.
+                </p>
+                <p>
+                    <strong>임계값 바로 위와 바로 아래의 사람들은 매우 유사합니다!</strong>
+                </p>
+                <p>
+                    예: 시험 점수 70점 이상이면 장학금, 69점이면 못 받는 경우
+                    → 70점과 69점 학생은 거의 같은데 장학금 유무만 다릅니다.
+                </p>
+            </div>
+
+            <h3>실생활 예시</h3>
+
             <div class="card-grid">
                 <div class="card">
-                    <h4>Sharp RDD</h4>
-                    <p>임계값에서 처치 확률이 0에서 1로 점프</p>
-                    <div class="equation">
-                        T = 1{X ≥ c}
+                    <h4>🎓 장학금 배정</h4>
+                    <p><strong>Running variable:</strong> 성적 (GPA)</p>
+                    <p><strong>Cutoff:</strong> 3.5</p>
+                    <p><strong>처치:</strong> 장학금 수령</p>
+                    <p><strong>결과:</strong> 향후 학업 성과</p>
+                    <p class="info-box tip">
+                        GPA 3.49와 3.51 학생은 거의 동일하지만 장학금 수령 여부만 다름
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h4>🍺 음주 연령 제한</h4>
+                    <p><strong>Running variable:</strong> 나이</p>
+                    <p><strong>Cutoff:</strong> 만 19세 (한국)</p>
+                    <p><strong>처치:</strong> 합법적 음주 가능</p>
+                    <p><strong>결과:</strong> 건강, 사고율</p>
+                    <p class="info-box tip">
+                        18세 364일과 19세 0일은 거의 같은 사람
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h4>🏫 학급 규모 규정</h4>
+                    <p><strong>Running variable:</strong> 학생 수</p>
+                    <p><strong>Cutoff:</strong> 40명</p>
+                    <p><strong>처치:</strong> 학급 분반 (소규모)</p>
+                    <p><strong>결과:</strong> 학업 성취도</p>
+                    <p class="info-box tip">
+                        Angrist & Lavy (1999) - 이스라엘 사례
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📊 RDD의 역사와 발전</h2>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h4>1960년 - 탄생</h4>
+                        <p>Donald Campbell - 심리학 연구에서 최초 제안</p>
                     </div>
                 </div>
-                <div class="card">
-                    <h4>Fuzzy RDD</h4>
-                    <p>임계값에서 처치 확률이 불연속적으로 변화</p>
-                    <div class="equation">
-                        P(T=1|X) 불연속
+
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h4>1999년 - 경제학 도입</h4>
+                        <p>Angrist & Lavy - 학급 규모 연구</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h4>2008년 - 방법론 발전</h4>
+                        <p>Lee & Lemieux - 표준화된 RDD 프레임워크</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h4>2012년 - 현대적 방법론</h4>
+                        <p>Calonico, Cattaneo & Titiunik - rdrobust 개발</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h4>2020년대 - 널리 사용</h4>
+                        <p>의학, 경제학, 정치학, 교육학에서 표준 방법으로 자리잡음</p>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <h3>타당성 가정</h3>
+        <div class="content-section">
+            <h2>🔍 Sharp RDD vs Fuzzy RDD</h2>
+
+            <h3>1. Sharp RDD (날카로운 RDD)</h3>
+
+            <div class="info-box note">
+                <p>
+                    임계값에서 처치 확률이 <strong>0에서 1로 완벽하게 점프</strong>합니다.
+                </p>
+                <div class="equation">
+                    <p><strong>처치 배정 규칙:</strong></p>
+                    <p>T<sub>i</sub> = 1{X<sub>i</sub> ≥ c}</p>
+                    <p style="font-size: 0.9rem; margin-top: 1rem;">
+                        X<sub>i</sub> ≥ c 이면 무조건 처치 (T=1)<br>
+                        X<sub>i</sub> &lt; c 이면 무조건 미처치 (T=0)
+                    </p>
+                </div>
+            </div>
+
+            <p><strong>Sharp RDD 예시:</strong></p>
             <ul>
-                <li><strong>연속성:</strong> 잠재적 결과가 임계값에서 연속</li>
-                <li><strong>조작 불가:</strong> Running variable 조작 없음</li>
-                <li><strong>국소성:</strong> 임계값 근처에서만 유효</li>
+                <li>시험 점수 70점 이상 → 무조건 합격</li>
+                <li>만 19세 이상 → 법적으로 음주 가능</li>
+                <li>소득 100만원 이하 → 자동으로 복지 혜택</li>
             </ul>
 
-            <h3>추정 방법</h3>
-            <div class="code-block">
-                <span class="language-badge">Python</span>
-                <pre><code>from rdd import rdd
-
-# Sharp RDD
-result = rdd.truncated_linear_rdd(
-    data['Y'],
-    data['running_var'],
-    cutoff=0,
-    bandwidth='optimal'
-)
-
-print(f"Treatment Effect: {result.est[0]:.3f}")
-print(f"SE: {result.se[0]:.3f}")</code></pre>
+            <div class="equation">
+                <h4>Sharp RDD 추정량</h4>
+                <p>τ<sub>RDD</sub> = lim<sub>x↓c</sub> E[Y|X=x] - lim<sub>x↑c</sub> E[Y|X=x]</p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    임계값 바로 오른쪽 평균 - 임계값 바로 왼쪽 평균
+                </p>
             </div>
 
-            <h3>대표 연구: Lee et al. (2008) - 현직 효과</h3>
-            <p>
-                선거에서 간신히 이긴 후보 vs 간신히 진 후보<br>
-                Running variable: 득표율 차이<br>
-                Cutoff: 0%<br>
-                결과: 현직 의원의 재선 확률 증가
-            </p>
+            <h3>2. Fuzzy RDD (흐릿한 RDD)</h3>
+
+            <div class="info-box warning">
+                <p>
+                    임계값에서 처치 확률이 <strong>불연속적으로 변화하지만, 0→1로 완벽하게 점프하지는 않음</strong>
+                </p>
+                <div class="equation">
+                    <p><strong>처치 배정 규칙:</strong></p>
+                    <p>P(T<sub>i</sub>=1 | X<sub>i</sub> ≥ c) &gt; P(T<sub>i</sub>=1 | X<sub>i</sub> &lt; c)</p>
+                    <p style="font-size: 0.9rem; margin-top: 1rem;">
+                        임계값 위에서 처치 확률이 더 높지만, 100%는 아님
+                    </p>
+                </div>
+            </div>
+
+            <p><strong>Fuzzy RDD 예시:</strong></p>
+            <ul>
+                <li>대학 입학 기준: 점수가 높아도 일부는 등록 안 함 (컴플라이언스 불완전)</li>
+                <li>의료 서비스 자격: 소득 기준 충족해도 신청 안 하는 사람 존재</li>
+                <li>군 복무: 신체검사 기준 통과해도 면제받는 경우 존재</li>
+            </ul>
+
+            <div class="equation">
+                <h4>Fuzzy RDD 추정량 (IV와 유사)</h4>
+                <p>τ<sub>Fuzzy</sub> = [lim<sub>x↓c</sub> E[Y|X=x] - lim<sub>x↑c</sub> E[Y|X=x]] / [lim<sub>x↓c</sub> E[T|X=x] - lim<sub>x↑c</sub> E[T|X=x]]</p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    결과의 불연속 / 처치의 불연속 = LATE (Local Average Treatment Effect)
+                </p>
+            </div>
+
+            <h3>비교표</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>특징</th>
+                        <th>Sharp RDD</th>
+                        <th>Fuzzy RDD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>처치 배정</td>
+                        <td>결정론적 (Deterministic)</td>
+                        <td>확률적 (Probabilistic)</td>
+                    </tr>
+                    <tr>
+                        <td>임계값에서 처치 확률 변화</td>
+                        <td>0 → 1 (100% 점프)</td>
+                        <td>p<sub>1</sub> → p<sub>2</sub> (불완전 점프)</td>
+                    </tr>
+                    <tr>
+                        <td>추정 방법</td>
+                        <td>직접 회귀</td>
+                        <td>도구변수 (2SLS)</td>
+                    </tr>
+                    <tr>
+                        <td>추정하는 효과</td>
+                        <td>ATE (at cutoff)</td>
+                        <td>LATE (Compliers)</td>
+                    </tr>
+                    <tr>
+                        <td>예시</td>
+                        <td>법정 연령 제한</td>
+                        <td>대학 입학 자격</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
-        <div class="chapter-nav">
-            <a href="08-instrumental-variables.html" class="btn">← Chapter 8</a>
-            <a href="10-did.html" class="btn btn-success">Chapter 10: 이중차분법 →</a>
+        <div class="interactive-box" id="interactive">
+            <h3>🔬 Interactive 데모: RDD 시뮬레이션</h3>
+            <p>다양한 RDD 시나리오를 시뮬레이션하고 시각화해보세요.</p>
+
+            <div class="simulation-container">
+                <div class="controls">
+                    <div class="control-group">
+                        <label>RDD 유형:</label>
+                        <select id="rdd-type">
+                            <option value="sharp">Sharp RDD</option>
+                            <option value="fuzzy">Fuzzy RDD</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="treatment-effect-rdd">처치 효과 크기: <span id="te-rdd-value">10</span></label>
+                        <input type="range" id="treatment-effect-rdd" min="0" max="30" step="2" value="10">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="cutoff">임계값 (Cutoff): <span id="cutoff-value">50</span></label>
+                        <input type="range" id="cutoff" min="30" max="70" step="5" value="50">
+                    </div>
+
+                    <div class="control-group" id="compliance-group" style="display: none;">
+                        <label for="compliance">Compliance 비율 (Fuzzy): <span id="compliance-value">0.7</span></label>
+                        <input type="range" id="compliance" min="0.3" max="1" step="0.1" value="0.7">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="sample-size-rdd">샘플 크기: <span id="sample-rdd-value">300</span></label>
+                        <input type="range" id="sample-size-rdd" min="100" max="1000" step="100" value="300">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="bandwidth">대역폭 (Bandwidth): <span id="bandwidth-value">20</span></label>
+                        <input type="range" id="bandwidth" min="5" max="40" step="5" value="20">
+                    </div>
+
+                    <div class="control-group">
+                        <button class="btn" onclick="runRDDSimulation()">시뮬레이션 실행</button>
+                    </div>
+                </div>
+
+                <div id="rdd-visualization">
+                    <canvas id="rdd-canvas" width="800" height="500"></canvas>
+                </div>
+
+                <div class="output-display" id="rdd-results">
+                    <p><strong>추정 결과:</strong></p>
+                    <div id="rdd-stats"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🔑 RDD의 타당성 가정</h2>
+
+            <p>RDD가 인과 효과를 정확히 추정하려면 다음 가정들이 만족되어야 합니다.</p>
+
+            <h3>1. 연속성 가정 (Continuity Assumption)</h3>
+
+            <div class="info-box note">
+                <p>
+                    <strong>잠재적 결과 Y(0)과 Y(1)이 임계값에서 연속</strong>이어야 합니다.
+                </p>
+                <div class="equation">
+                    <p>lim<sub>x↓c</sub> E[Y(0)|X=x] = lim<sub>x↑c</sub> E[Y(0)|X=x]</p>
+                    <p>lim<sub>x↓c</sub> E[Y(1)|X=x] = lim<sub>x↑c</sub> E[Y(1)|X=x]</p>
+                </div>
+                <p style="margin-top: 1rem;">
+                    즉, 처치가 없었다면 결과가 임계값에서 매끄럽게 이어져야 합니다.
+                </p>
+            </div>
+
+            <h3>2. 조작 불가 가정 (No Manipulation)</h3>
+
+            <div class="info-box warning">
+                <p>
+                    <strong>개인이 Running variable을 정밀하게 조작할 수 없어야</strong> 합니다.
+                </p>
+                <p><strong>위배 사례:</strong></p>
+                <ul>
+                    <li>학생이 정확히 장학금 기준을 맞추기 위해 점수 조작</li>
+                    <li>기업이 보조금 기준을 피하기 위해 매출 조정</li>
+                    <li>정치인이 선거 득표를 조작</li>
+                </ul>
+            </div>
+
+            <p><strong>검증 방법: McCrary 밀도 테스트</strong></p>
+            <p>
+                임계값 근처에서 Running variable의 밀도 함수가 연속적인지 검사합니다.
+                조작이 있다면 임계값 바로 위 또는 아래에 관측치가 비정상적으로 많이 몰릴 것입니다.
+            </p>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code>from rddensity import rddensity
+
+# McCrary 밀도 테스트
+density_test = rddensity(data['running_var'], c=0)
+print(f"Test statistic: {density_test.test['t_jk']}")
+print(f"P-value: {density_test.test['p_jk']}")</code></pre>
+            </div>
+
+            <h3>3. 국소성 (Local Randomization)</h3>
+
+            <div class="info-box tip">
+                <p>
+                    <strong>임계값 근처에서는 처치 배정이 사실상 무작위</strong>입니다.
+                </p>
+                <p>
+                    예: 시험 70점과 69점은 우연에 의한 차이일 뿐,
+                    두 그룹의 다른 특성들(지능, 노력, 배경)은 유사할 것입니다.
+                </p>
+            </div>
+
+            <p><strong>검증 방법: Balance Test (균형 검정)</strong></p>
+            <p>
+                사전 결정된 공변량(pre-determined covariates)이 임계값에서 불연속을 보이는지 확인합니다.
+                만약 불연속이 있다면 국소 무작위화 가정이 의심됩니다.
+            </p>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code># 공변량 균형 검정
+rdplot(data$age, data$running_var, c=0,
+       title="Age Balance Test",
+       x.label="Running Variable",
+       y.label="Age")</code></pre>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📐 RDD 추정 방법</h2>
+
+            <h3>1. 로컬 선형 회귀 (Local Linear Regression)</h3>
+
+            <p>
+                가장 널리 사용되는 방법으로, 임계값 근처 데이터만 사용하여
+                양쪽에서 각각 선형 회귀를 실행합니다.
+            </p>
+
+            <div class="equation">
+                <p><strong>회귀 모형:</strong></p>
+                <p>Y<sub>i</sub> = α + τD<sub>i</sub> + β<sub>1</sub>(X<sub>i</sub> - c) + β<sub>2</sub>D<sub>i</sub>(X<sub>i</sub> - c) + ε<sub>i</sub></p>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    D<sub>i</sub> = 1{X<sub>i</sub> ≥ c}: 처치 지시자<br>
+                    (X<sub>i</sub> - c): 임계값으로부터의 거리<br>
+                    τ: RDD 추정 효과 (관심 파라미터)
+                </p>
+            </div>
+
+            <h3>2. 대역폭 선택 (Bandwidth Selection)</h3>
+
+            <p>
+                <strong>대역폭(h)</strong>은 임계값으로부터 얼마나 멀리까지 데이터를 사용할지 결정합니다.
+            </p>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>좁은 대역폭</h4>
+                    <p><strong>장점:</strong></p>
+                    <ul>
+                        <li>편향(Bias) 감소</li>
+                        <li>국소 무작위화 가정 더 타당</li>
+                    </ul>
+                    <p><strong>단점:</strong></p>
+                    <ul>
+                        <li>분산(Variance) 증가</li>
+                        <li>샘플 크기 감소</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h4>넓은 대역폭</h4>
+                    <p><strong>장점:</strong></p>
+                    <ul>
+                        <li>분산(Variance) 감소</li>
+                        <li>더 많은 데이터 사용</li>
+                    </ul>
+                    <p><strong>단점:</strong></p>
+                    <ul>
+                        <li>편향(Bias) 증가</li>
+                        <li>국소성 가정 위배 가능</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="info-box tip">
+                <h4>💡 최적 대역폭</h4>
+                <p>
+                    <strong>Imbens-Kalyanaraman (2012)</strong> 또는
+                    <strong>Calonico-Cattaneo-Titiunik (2014)</strong> 방법 사용
+                </p>
+                <p>
+                    편향과 분산의 균형(MSE 최소화)을 자동으로 찾아줍니다.
+                </p>
+            </div>
+
+            <h3>3. 다항식 차수 선택</h3>
+
+            <p>
+                임계값 양쪽에서 어느 정도 차수의 다항식을 사용할지 결정합니다.
+            </p>
+
+            <ul>
+                <li><strong>1차 (선형):</strong> 가장 일반적, Gelman & Imbens (2019) 권장</li>
+                <li><strong>2차 이상:</strong> 비선형 관계가 명확한 경우만 사용</li>
+            </ul>
+
+            <div class="info-box warning">
+                <h4>⚠️ 고차 다항식의 위험</h4>
+                <p>
+                    Gelman & Imbens (2019)는 3차 이상 다항식 사용을 <strong>권장하지 않습니다</strong>.
+                </p>
+                <p>
+                    이유: 임계값에서 멀리 떨어진 데이터에 과도하게 영향받고,
+                    추정량이 불안정해집니다.
+                </p>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>💻 Python 구현: rdrobust</h2>
+
+            <p>
+                <strong>rdrobust</strong> 패키지는 RDD 분석의 표준 도구입니다
+                (Calonico, Cattaneo, Titiunik).
+            </p>
+
+            <div class="code-block">
+                <span class="language-badge">Python</span>
+                <pre><code># 설치
+pip install rdrobust
+
+import numpy as np
+import pandas as pd
+from rdrobust import rdrobust, rdbwselect, rdplot
+
+# 데이터 생성 (예시)
+np.random.seed(123)
+n = 1000
+X = np.random.uniform(-50, 50, n)  # Running variable
+T = (X >= 0).astype(int)            # Treatment (cutoff at 0)
+
+# 잠재적 결과
+Y0 = 50 + 0.5*X + np.random.normal(0, 10, n)
+Y1 = Y0 + 10  # Treatment effect = 10
+
+# 관찰된 결과
+Y = T * Y1 + (1-T) * Y0
+
+# DataFrame 생성
+data = pd.DataFrame({'Y': Y, 'X': X, 'T': T})
+
+# ==============================
+# Sharp RDD 추정
+# ==============================
+
+# 1. 최적 대역폭 자동 선택
+result = rdrobust(Y, X, c=0)
+print(result)
+
+# 주요 결과:
+# - Coef: RDD 추정 효과
+# - Bias-corrected robust 95% CI
+# - Bandwidth (h): 최적 대역폭
+
+# 2. 대역폭 수동 지정
+result_manual = rdrobust(Y, X, c=0, h=15)
+
+# 3. 시각화
+rdplot_result = rdplot(Y, X, c=0,
+                       title='Sharp RDD Example',
+                       x_label='Running Variable',
+                       y_label='Outcome')
+
+# ==============================
+# Fuzzy RDD 추정
+# ==============================
+
+# Compliance가 불완전한 경우 (80%)
+T_fuzzy = np.where(X >= 0,
+                   np.random.binomial(1, 0.8, n),
+                   np.random.binomial(1, 0.2, n))
+
+Y_fuzzy = T_fuzzy * Y1 + (1-T_fuzzy) * Y0
+
+# Fuzzy RDD: fuzzy 옵션 사용
+result_fuzzy = rdrobust(Y_fuzzy, X, c=0,
+                        fuzzy=T_fuzzy)
+print(result_fuzzy)
+
+# ==============================
+# 강건성 검증
+# ==============================
+
+# 1. 다양한 대역폭으로 검증
+bandwidths = [10, 15, 20, 25, 30]
+estimates = []
+
+for h in bandwidths:
+    res = rdrobust(Y, X, c=0, h=h)
+    estimates.append({
+        'bandwidth': h,
+        'coef': res.coef[0],
+        'se': res.se[0],
+        'ci_lower': res.ci[0, 0],
+        'ci_upper': res.ci[1, 0]
+    })
+
+sensitivity_df = pd.DataFrame(estimates)
+print(sensitivity_df)
+
+# 2. Placebo cutoff 테스트
+# 가짜 임계값에서는 효과가 없어야 함
+placebo_cutoffs = [-20, -10, 10, 20]
+
+for c_placebo in placebo_cutoffs:
+    res = rdrobust(Y, X, c=c_placebo)
+    print(f"Placebo cutoff {c_placebo}: {res.coef[0]:.3f} (p={res.pv[0]:.3f})")
+
+# ==============================
+# 공변량 균형 검정
+# ==============================
+
+# 사전 결정된 변수가 임계값에서 불연속을 보이는지 확인
+age = 30 + 0.1*X + np.random.normal(0, 5, n)
+
+balance_test = rdrobust(age, X, c=0)
+print("Age balance test:")
+print(f"Discontinuity: {balance_test.coef[0]:.3f}")
+print(f"P-value: {balance_test.pv[0]:.3f}")
+# P-value가 크면 균형 만족 (좋음)</code></pre>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>💻 R 구현: rdrobust</h2>
+
+            <div class="code-block">
+                <span class="language-badge">R</span>
+                <pre><code># 설치
+install.packages("rdrobust")
+
+library(rdrobust)
+library(ggplot2)
+
+# 데이터 생성
+set.seed(123)
+n <- 1000
+X <- runif(n, -50, 50)
+T <- as.numeric(X >= 0)
+
+Y0 <- 50 + 0.5*X + rnorm(n, 0, 10)
+Y1 <- Y0 + 10
+
+Y <- T * Y1 + (1-T) * Y0
+
+data <- data.frame(Y=Y, X=X, T=T)
+
+# ==============================
+# Sharp RDD
+# ==============================
+
+# 기본 추정
+rdd_result <- rdrobust(Y, X, c=0)
+summary(rdd_result)
+
+# 시각화
+rdplot(Y, X, c=0,
+       title="Sharp RDD",
+       x.label="Running Variable",
+       y.label="Outcome",
+       ci=95)
+
+# 대역폭 선택 알고리즘 비교
+bw_ik <- rdbwselect(Y, X, c=0, bwselect="mserd")  # IK
+bw_cct <- rdbwselect(Y, X, c=0, bwselect="msetwo") # CCT
+
+summary(bw_ik)
+summary(bw_cct)
+
+# ==============================
+# Fuzzy RDD
+# ==============================
+
+# Compliance 80%
+T_fuzzy <- ifelse(X >= 0,
+                  rbinom(n, 1, 0.8),
+                  rbinom(n, 1, 0.2))
+
+Y_fuzzy <- T_fuzzy * Y1 + (1-T_fuzzy) * Y0
+
+rdd_fuzzy <- rdrobust(Y_fuzzy, X, fuzzy=T_fuzzy, c=0)
+summary(rdd_fuzzy)
+
+# ==============================
+# McCrary 밀도 테스트
+# ==============================
+
+library(rdd)
+DCdensity(X, cutpoint=0)
+
+# ==============================
+# 공변량 균형
+# ==============================
+
+age <- 30 + 0.1*X + rnorm(n, 0, 5)
+
+rdplot(age, X, c=0,
+       title="Covariate Balance: Age",
+       x.label="Running Variable",
+       y.label="Age")
+
+balance <- rdrobust(age, X, c=0)
+summary(balance)
+
+# ==============================
+# 강건성 검증
+# ==============================
+
+# 1. 다양한 대역폭
+bandwidths <- c(10, 15, 20, 25, 30)
+results <- data.frame()
+
+for(h in bandwidths) {
+  res <- rdrobust(Y, X, c=0, h=h)
+  results <- rbind(results, data.frame(
+    bandwidth = h,
+    coef = res$coef[1],
+    se = res$se[1],
+    ci_lower = res$ci[1,1],
+    ci_upper = res$ci[2,1]
+  ))
+}
+
+# 시각화
+ggplot(results, aes(x=bandwidth, y=coef)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=ci_lower, ymax=ci_upper), width=1) +
+  geom_hline(yintercept=10, linetype="dashed", color="red") +
+  labs(title="Sensitivity to Bandwidth Choice",
+       x="Bandwidth", y="Treatment Effect Estimate") +
+  theme_minimal()
+
+# 2. Donut hole (임계값 바로 근처 제외)
+rdd_donut <- rdrobust(Y, X, c=0, h=20, b=20)
+# 임계값 ±2 제외</code></pre>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 실제 연구 사례</h2>
+
+            <h3>1. Lee et al. (2008) - 현직 효과 (Incumbency Advantage)</h3>
+
+            <div class="info-box note">
+                <p><strong>연구 질문:</strong> 선거에서 이기는 것 자체가 다음 선거 승리 확률을 높이는가?</p>
+                <p><strong>Running variable:</strong> 득표율 차이 (민주당 - 공화당)</p>
+                <p><strong>Cutoff:</strong> 0% (간신히 이김 vs 간신히 짐)</p>
+                <p><strong>처치:</strong> 현직 의원이 되는 것</p>
+                <p><strong>결과:</strong> 다음 선거 승률</p>
+            </div>
+
+            <p><strong>핵심 발견:</strong></p>
+            <ul>
+                <li>간신히 이긴 후보는 다음 선거에서 약 <strong>40-50%p 더 높은 승률</strong></li>
+                <li>현직 효과는 강력하며, 인지도/자금/경험 등에서 이점</li>
+                <li>Sharp RDD의 교과서적 사례</li>
+            </ul>
+
+            <h3>2. Angrist & Lavy (1999) - 학급 규모와 학업 성취도</h3>
+
+            <div class="info-box note">
+                <p><strong>연구 질문:</strong> 학급 규모가 작아지면 학생 성적이 향상되는가?</p>
+                <p><strong>Running variable:</strong> 학년당 학생 수</p>
+                <p><strong>Cutoff:</strong> 40명 (Maimonides' Rule)</p>
+                <p><strong>처치:</strong> 학급 분반 (소규모 학급)</p>
+                <p><strong>결과:</strong> 표준 시험 점수</p>
+            </div>
+
+            <p><strong>핵심 발견:</strong></p>
+            <ul>
+                <li>41명 학년은 2개 학급으로 나뉘어 평균 20.5명</li>
+                <li>40명 학년은 1개 학급으로 40명</li>
+                <li>소규모 학급이 특히 <strong>읽기와 수학 점수 향상</strong></li>
+            </ul>
+
+            <h3>3. Carpenter & Dobkin (2009) - 음주 연령과 사망률</h3>
+
+            <div class="info-box note">
+                <p><strong>연구 질문:</strong> 합법적 음주 가능 연령이 되면 사망률이 증가하는가?</p>
+                <p><strong>Running variable:</strong> 나이 (일 단위)</p>
+                <p><strong>Cutoff:</strong> 만 21세 (미국)</p>
+                <p><strong>처치:</strong> 합법적 음주 가능</p>
+                <p><strong>결과:</strong> 사망률 (특히 교통사고)</p>
+            </div>
+
+            <p><strong>핵심 발견:</strong></p>
+            <ul>
+                <li>21세 생일을 넘기면 사망률이 약 <strong>9% 증가</strong></li>
+                <li>주로 교통사고, 음주 관련 사고 증가</li>
+                <li>정책적 시사점: 음주 연령 제한의 효과 입증</li>
+            </ul>
+
+            <h3>4. Card et al. (2008) - 신용카드 한도와 파산</h3>
+
+            <div class="info-box note">
+                <p><strong>Running variable:</strong> 신용 점수</p>
+                <p><strong>Cutoff:</strong> 카드사의 내부 기준점</p>
+                <p><strong>처치:</strong> 높은 신용 한도</p>
+                <p><strong>결과:</strong> 파산 확률</p>
+            </div>
+
+            <p><strong>핵심 발견:</strong></p>
+            <ul>
+                <li>신용 한도 증가가 파산 확률에 미치는 영향 추정</li>
+                <li>Fuzzy RDD 사례 (기준 충족해도 한도가 다름)</li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>⚠️ RDD 사용 시 주의사항</h2>
+
+            <h3>1. 외부 타당성 (External Validity) 제한</h3>
+
+            <div class="info-box warning">
+                <p>
+                    RDD는 <strong>임계값 근처에서만</strong> 인과 효과를 추정합니다.
+                </p>
+                <p>
+                    예: 시험 70점 학생의 장학금 효과를 추정할 수 있지만,
+                    50점 또는 90점 학생에게는 효과가 다를 수 있습니다.
+                </p>
+            </div>
+
+            <h3>2. Running Variable 조작</h3>
+
+            <ul>
+                <li>학생이 점수를 조작할 수 있다면 RDD 무효</li>
+                <li>기업이 매출을 조정할 수 있다면 문제</li>
+                <li><strong>해결책:</strong> McCrary 밀도 테스트로 검증</li>
+            </ul>
+
+            <h3>3. 다른 정책의 동시 변화</h3>
+
+            <div class="info-box warning">
+                <p>
+                    임계값에서 여러 정책이 동시에 바뀌면 어떤 효과인지 알 수 없습니다.
+                </p>
+                <p>
+                    예: 소득 100만원 이하면 동시에 식비 지원 + 교통비 지원 + 의료비 지원
+                    → 어떤 지원의 효과인지 분리 불가
+                </p>
+            </div>
+
+            <h3>4. 대역폭 선택의 자의성</h3>
+
+            <ul>
+                <li>대역폭에 따라 결과가 달라질 수 있음</li>
+                <li><strong>해결책:</strong>
+                    <ul>
+                        <li>최적 대역폭 알고리즘 사용 (IK, CCT)</li>
+                        <li>여러 대역폭으로 강건성 검증</li>
+                        <li>결과를 그래프로 시각화</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h3>5. 샘플 크기</h3>
+
+            <div class="info-box tip">
+                <p>
+                    RDD는 임계값 근처 데이터만 사용하므로 <strong>유효 샘플 크기가 작습니다</strong>.
+                </p>
+                <p>
+                    전체 1000명 데이터가 있어도, 대역폭 내에는 100명만 있을 수 있습니다.
+                    → 검정력(power) 낮을 수 있음
+                </p>
+            </div>
+        </div>
+
+        <div class="content-section" id="quiz">
+            <h2>📝 퀴즈: 학습 내용 확인</h2>
+
+            <div class="quiz-container">
+                <div class="question">
+                    <h4>Q1. RDD의 핵심 가정은 무엇인가요?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 처치와 결과가 독립적이다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 임계값 근처에서 처치 배정이 사실상 무작위다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 모든 개체가 동일한 처치 효과를 받는다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. Running variable이 정규분포를 따른다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        RDD의 핵심은 임계값 바로 위와 아래의 개체들이 매우 유사하여
+                        처치 배정이 사실상 무작위라는 "국소 무작위화" 가정입니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q2. Sharp RDD와 Fuzzy RDD의 차이는?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. Sharp는 선형, Fuzzy는 비선형 회귀를 사용한다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. Sharp는 처치 확률이 0→1로 완전히 점프하지만, Fuzzy는 불완전하게 점프한다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. Sharp는 편향이 크고, Fuzzy는 분산이 크다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. Sharp는 대역폭이 필요하지 않다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        Sharp RDD는 임계값에서 처치 확률이 0에서 1로 완벽하게 점프하지만,
+                        Fuzzy RDD는 불완전한 컴플라이언스로 인해 불완전하게 점프합니다.
+                        Fuzzy RDD는 도구변수(IV) 방법으로 추정합니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q3. McCrary 밀도 테스트의 목적은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="true">
+                            A. Running variable의 조작 여부를 검증한다
+                        </div>
+                        <div class="option" data-correct="false">
+                            B. 최적 대역폭을 선택한다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 처치 효과의 이질성을 테스트한다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 공변량의 균형을 검정한다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: A</strong><br>
+                        McCrary 밀도 테스트는 Running variable의 밀도가 임계값에서 연속적인지 확인합니다.
+                        만약 불연속이 있다면 개체들이 임계값을 넘기 위해 조작했을 가능성이 있습니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q4. 대역폭(bandwidth)이 좁을 때의 장단점은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 편향과 분산 모두 감소한다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 편향은 감소하지만 분산은 증가한다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 편향은 증가하지만 분산은 감소한다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 편향과 분산 모두 증가한다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        좁은 대역폭은 임계값에 가까운 데이터만 사용하므로 국소 무작위화 가정이 더 타당해져
+                        편향(bias)이 감소합니다. 하지만 샘플 크기가 줄어 분산(variance)이 증가합니다.
+                        최적 대역폭은 MSE(평균 제곱 오차)를 최소화하는 균형점입니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q5. 다음 중 RDD를 적용하기 적절한 상황은?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 온라인 쇼핑몰에서 무작위로 할인 쿠폰을 제공
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. GPA 3.5 이상 학생에게만 장학금 지급
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 자발적으로 신청한 사람에게만 직업훈련 제공
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 성별에 따라 다른 프로그램 배정
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        RDD는 연속 변수의 임계값에 의해 처치가 결정되는 상황에 적합합니다.
+                        GPA 3.5는 명확한 임계값이고, 3.49와 3.51 학생은 거의 동일하므로
+                        RDD의 국소 무작위화 가정이 타당합니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q6. RDD의 주요 한계는?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 계산이 복잡하고 시간이 오래 걸린다
+                        </div>
+                        <div class="option" data-correct="true">
+                            B. 임계값 근처에서만 효과를 추정하여 외부 타당성이 제한적이다
+                        </div>
+                        <div class="option" data-correct="false">
+                            C. 관찰 데이터로는 사용할 수 없다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 연속형 결과 변수에만 적용 가능하다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: B</strong><br>
+                        RDD의 주요 한계는 외부 타당성(external validity)입니다.
+                        임계값 근처의 국소적(local) 효과만 추정하므로,
+                        임계값에서 멀리 떨어진 개체들에게는 효과가 다를 수 있습니다.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h4>Q7. Gelman & Imbens (2019)가 고차 다항식 사용을 권장하지 않는 이유는?</h4>
+                    <div class="options">
+                        <div class="option" data-correct="false">
+                            A. 계산이 너무 복잡하다
+                        </div>
+                        <div class="option" data-correct="false">
+                            B. 해석이 어렵다
+                        </div>
+                        <div class="option" data-correct="true">
+                            C. 임계값에서 먼 데이터에 과도하게 영향받아 추정량이 불안정하다
+                        </div>
+                        <div class="option" data-correct="false">
+                            D. 분산이 너무 커진다
+                        </div>
+                    </div>
+                    <div class="feedback">
+                        <strong>정답: C</strong><br>
+                        3차 이상의 고차 다항식은 임계값에서 멀리 떨어진 데이터 포인트에
+                        과도하게 민감하게 반응하여 추정량이 불안정해집니다.
+                        대부분의 경우 1차(선형) 또는 2차 다항식이면 충분합니다.
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="markChapterComplete(9)" style="margin-top: 2rem;">
+                ✓ Chapter 9 완료하기
+            </button>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 추천 자료</h2>
+
+            <h3>논문</h3>
+            <ul>
+                <li>Lee, D. S., & Lemieux, T. (2010). "Regression discontinuity designs in economics." <em>Journal of Economic Literature</em>, 48(2), 281-355.</li>
+                <li>Imbens, G., & Lemieux, T. (2008). "Regression discontinuity designs: A guide to practice." <em>Journal of Econometrics</em>, 142(2), 615-635.</li>
+                <li>Calonico, S., Cattaneo, M. D., & Titiunik, R. (2014). "Robust nonparametric confidence intervals for regression-discontinuity designs." <em>Econometrica</em>, 82(6), 2295-2326.</li>
+                <li>Gelman, A., & Imbens, G. (2019). "Why high-order polynomials should not be used in regression discontinuity designs." <em>Journal of Business & Economic Statistics</em>, 37(3), 447-456.</li>
+            </ul>
+
+            <h3>책</h3>
+            <ul>
+                <li>Cattaneo, M. D., Idrobo, N., & Titiunik, R. (2019). <em>A Practical Introduction to Regression Discontinuity Designs: Foundations</em>. Cambridge University Press.</li>
+                <li>Angrist, J. D., & Pischke, J. S. (2008). <em>Mostly Harmless Econometrics</em>. Princeton University Press. (Chapter 6)</li>
+            </ul>
+
+            <h3>온라인 리소스</h3>
+            <ul>
+                <li><a href="https://rdpackages.github.io/" target="_blank">rdrobust 공식 웹사이트</a></li>
+                <li><a href="https://sites.google.com/site/rdpackages/" target="_blank">RDD 패키지 모음</a></li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>🎯 다음 단계</h2>
+            <p>
+                RDD를 마스터했다면, 이제 패널 데이터를 사용하는
+                <strong>이중차분법(Difference-in-Differences)</strong>을 배워봅시다.
+                DiD는 시간에 따른 변화를 활용하여 인과 효과를 추정하는 강력한 방법입니다.
+            </p>
+
+            <div class="chapter-nav">
+                <a href="08-instrumental-variables.html" class="btn">← Chapter 8: 도구변수</a>
+                <a href="10-did.html" class="btn btn-success">Chapter 10: 이중차분법 →</a>
+            </div>
         </div>
     </div>
-    <footer><p>&copy; 2024 Causal Inference 학습 가이드</p></footer>
+
+    <footer>
+        <p>&copy; 2024 Causal Inference 학습 가이드</p>
+    </footer>
+
     <script src="../js/main.js"></script>
+    <script src="../js/visualizations.js"></script>
+    <script>
+        // RDD Simulation
+        function runRDDSimulation() {
+            const rddType = document.getElementById('rdd-type').value;
+            const treatmentEffect = parseFloat(document.getElementById('treatment-effect-rdd').value);
+            const cutoff = parseFloat(document.getElementById('cutoff').value);
+            const compliance = parseFloat(document.getElementById('compliance').value);
+            const n = parseInt(document.getElementById('sample-size-rdd').value);
+            const bandwidth = parseFloat(document.getElementById('bandwidth').value);
+
+            // Generate data
+            const data = [];
+            for (let i = 0; i < n; i++) {
+                const x = Math.random() * 100; // Running variable 0-100
+                let treatment;
+
+                if (rddType === 'sharp') {
+                    treatment = x >= cutoff ? 1 : 0;
+                } else {
+                    // Fuzzy: compliance affects treatment probability
+                    if (x >= cutoff) {
+                        treatment = Math.random() < compliance ? 1 : 0;
+                    } else {
+                        treatment = Math.random() < (1 - compliance) ? 1 : 0;
+                    }
+                }
+
+                // Outcome: linear relationship + treatment effect + noise
+                const y0 = 30 + 0.3 * x + (Math.random() - 0.5) * 15;
+                const y = y0 + treatment * treatmentEffect;
+
+                data.push({ x, treatment, y });
+            }
+
+            // Estimate RDD effect
+            const dataInBandwidth = data.filter(d => Math.abs(d.x - cutoff) <= bandwidth);
+            const treated = dataInBandwidth.filter(d => d.x >= cutoff);
+            const control = dataInBandwidth.filter(d => d.x < cutoff);
+
+            const avgTreated = treated.reduce((sum, d) => sum + d.y, 0) / treated.length;
+            const avgControl = control.reduce((sum, d) => sum + d.y, 0) / control.length;
+            const rddEstimate = avgTreated - avgControl;
+
+            // Calculate for Sharp RDD
+            if (rddType === 'sharp') {
+                visualizeRDD(data, cutoff, bandwidth, rddEstimate, treatmentEffect);
+                displayRDDResults(rddEstimate, treatmentEffect, treated.length, control.length, rddType);
+            } else {
+                // Fuzzy RDD: need to calculate treatment discontinuity
+                const treatRateTreated = treated.filter(d => d.treatment === 1).length / treated.length;
+                const treatRateControl = control.filter(d => d.treatment === 1).length / control.length;
+                const treatmentDiscontinuity = treatRateTreated - treatRateControl;
+
+                const fuzzyEstimate = treatmentDiscontinuity > 0 ? rddEstimate / treatmentDiscontinuity : 0;
+
+                visualizeRDD(data, cutoff, bandwidth, fuzzyEstimate, treatmentEffect);
+                displayRDDResults(fuzzyEstimate, treatmentEffect, treated.length, control.length, rddType, treatmentDiscontinuity);
+            }
+        }
+
+        function visualizeRDD(data, cutoff, bandwidth, estimate, trueEffect) {
+            const canvas = document.getElementById('rdd-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const width = canvas.width;
+            const height = canvas.height;
+            const margin = { top: 40, right: 40, bottom: 60, left: 60 };
+            const plotWidth = width - margin.left - margin.right;
+            const plotHeight = height - margin.top - margin.bottom;
+
+            // Scales
+            const xScale = (x) => margin.left + (x / 100) * plotWidth;
+            const yScale = (y) => margin.top + plotHeight - ((y - 10) / 80) * plotHeight;
+
+            // Draw axes
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin.left, margin.top);
+            ctx.lineTo(margin.left, margin.top + plotHeight);
+            ctx.lineTo(margin.left + plotWidth, margin.top + plotHeight);
+            ctx.stroke();
+
+            // Draw cutoff line
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(xScale(cutoff), margin.top);
+            ctx.lineTo(xScale(cutoff), margin.top + plotHeight);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw bandwidth region
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.1)';
+            ctx.fillRect(
+                xScale(cutoff - bandwidth),
+                margin.top,
+                xScale(cutoff + bandwidth) - xScale(cutoff - bandwidth),
+                plotHeight
+            );
+
+            // Draw data points
+            data.forEach(d => {
+                ctx.fillStyle = d.x >= cutoff ? 'rgba(46, 204, 113, 0.6)' : 'rgba(52, 152, 219, 0.6)';
+                ctx.beginPath();
+                ctx.arc(xScale(d.x), yScale(d.y), 3, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+            // Fit and draw regression lines
+            const leftData = data.filter(d => d.x < cutoff && Math.abs(d.x - cutoff) <= bandwidth);
+            const rightData = data.filter(d => d.x >= cutoff && Math.abs(d.x - cutoff) <= bandwidth);
+
+            if (leftData.length > 1) {
+                const leftFit = linearRegression(leftData);
+                ctx.strokeStyle = '#3498db';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(xScale(cutoff - bandwidth), yScale(leftFit.predict(cutoff - bandwidth)));
+                ctx.lineTo(xScale(cutoff), yScale(leftFit.predict(cutoff)));
+                ctx.stroke();
+            }
+
+            if (rightData.length > 1) {
+                const rightFit = linearRegression(rightData);
+                ctx.strokeStyle = '#2ecc71';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(xScale(cutoff), yScale(rightFit.predict(cutoff)));
+                ctx.lineTo(xScale(cutoff + bandwidth), yScale(rightFit.predict(cutoff + bandwidth)));
+                ctx.stroke();
+            }
+
+            // Labels
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Regression Discontinuity Design', width / 2, 25);
+
+            ctx.font = '14px Arial';
+            ctx.fillText('Running Variable', width / 2, height - 20);
+
+            ctx.save();
+            ctx.translate(20, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Outcome', 0, 0);
+            ctx.restore();
+
+            // Cutoff label
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = '12px Arial';
+            ctx.fillText(`Cutoff: ${cutoff}`, xScale(cutoff), margin.top - 10);
+        }
+
+        function linearRegression(data) {
+            const n = data.length;
+            const sumX = data.reduce((sum, d) => sum + d.x, 0);
+            const sumY = data.reduce((sum, d) => sum + d.y, 0);
+            const sumXY = data.reduce((sum, d) => sum + d.x * d.y, 0);
+            const sumX2 = data.reduce((sum, d) => sum + d.x * d.x, 0);
+
+            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+
+            return {
+                slope,
+                intercept,
+                predict: (x) => intercept + slope * x
+            };
+        }
+
+        function displayRDDResults(estimate, trueEffect, nTreated, nControl, rddType, treatmentDiscontinuity = null) {
+            const bias = estimate - trueEffect;
+            const percentError = Math.abs(bias / trueEffect) * 100;
+
+            let html = `
+                <strong>설정한 진짜 처치 효과:</strong> ${trueEffect.toFixed(2)}<br>
+                <strong>RDD 추정 효과:</strong> ${estimate.toFixed(2)}<br>
+                <strong>편향 (Bias):</strong> ${bias.toFixed(2)}<br>
+                <strong>오차율:</strong> ${percentError.toFixed(1)}%<br><br>
+
+                <strong>대역폭 내 샘플:</strong><br>
+                - 처치군 (cutoff 이상): ${nTreated}명<br>
+                - 대조군 (cutoff 미만): ${nControl}명<br><br>
+            `;
+
+            if (rddType === 'fuzzy' && treatmentDiscontinuity) {
+                html += `<strong>Fuzzy RDD:</strong><br>
+                - 처치 불연속 (First stage): ${(treatmentDiscontinuity * 100).toFixed(1)}%<br>
+                - 추정 방법: IV (결과 불연속 / 처치 불연속)<br><br>`;
+            }
+
+            if (percentError < 10) {
+                html += '<span style="color: #27ae60;">✓ 추정이 매우 정확합니다!</span>';
+            } else if (percentError < 20) {
+                html += '<span style="color: #f39c12;">⚠ 추정이 합리적입니다. 대역폭이나 샘플 크기 조정을 고려하세요.</span>';
+            } else {
+                html += '<span style="color: #e74c3c;">⚠ 추정 오차가 큽니다. 대역폭을 조정하거나 샘플 크기를 늘려보세요.</span>';
+            }
+
+            document.getElementById('rdd-stats').innerHTML = html;
+        }
+
+        // Event listeners for value displays
+        document.getElementById('rdd-type').addEventListener('change', (e) => {
+            const complianceGroup = document.getElementById('compliance-group');
+            complianceGroup.style.display = e.target.value === 'fuzzy' ? 'block' : 'none';
+        });
+
+        document.getElementById('treatment-effect-rdd').addEventListener('input', (e) => {
+            document.getElementById('te-rdd-value').textContent = e.target.value;
+        });
+
+        document.getElementById('cutoff').addEventListener('input', (e) => {
+            document.getElementById('cutoff-value').textContent = e.target.value;
+        });
+
+        document.getElementById('compliance').addEventListener('input', (e) => {
+            document.getElementById('compliance-value').textContent = e.target.value;
+        });
+
+        document.getElementById('sample-size-rdd').addEventListener('input', (e) => {
+            document.getElementById('sample-rdd-value').textContent = e.target.value;
+        });
+
+        document.getElementById('bandwidth').addEventListener('input', (e) => {
+            document.getElementById('bandwidth-value').textContent = e.target.value;
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            runRDDSimulation();
+        });
+    </script>
 </body>
 </html>
