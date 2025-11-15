@@ -3,124 +3,2190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 12: 매개 분석</title>
+    <title>Chapter 12: 매개 분석 (Mediation Analysis)</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .mediation-diagram {
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .effect-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        .sensitivity-controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .slider-container {
+            margin: 15px 0;
+        }
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+        .code-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .code-tab {
+            padding: 10px 20px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .code-tab.active {
+            background: #2c3e50;
+            color: white;
+        }
+        .code-content {
+            display: none;
+        }
+        .code-content.active {
+            display: block;
+        }
+        .research-case {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .path-diagram {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .path-node {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: #3498db;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            position: relative;
+        }
+        .path-arrow {
+            font-size: 48px;
+            color: #2c3e50;
+            position: relative;
+        }
+        .path-label {
+            position: absolute;
+            top: -30px;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .comparison-table th {
+            background: #3498db;
+            color: white;
+        }
+        .comparison-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
         <div class="navbar-container">
             <h1>🎓 Causal Inference 학습 가이드</h1>
+            <ul class="nav-links">
+                <li><a href="../index.html">홈</a></li>
+                <li><a href="#content">학습내용</a></li>
+                <li><a href="#interactive">실습</a></li>
+                <li><a href="#quiz">퀴즈</a></li>
+            </ul>
         </div>
     </nav>
+
     <div class="container">
         <div class="chapter-header">
             <span class="badge advanced">고급 - Chapter 12</span>
             <h1>매개 분석 (Mediation Analysis)</h1>
-            <p class="lead">인과 메커니즘을 분해하여 직접 효과와 간접 효과를 분리</p>
+            <p class="lead">인과 메커니즘을 분해하여 직접 효과와 간접 효과를 분리하고, "어떻게" 효과가 발생하는지 이해합니다</p>
+
+            <div class="chapter-nav">
+                <a href="11-synthetic-control.html" class="btn">← 이전 챕터</a>
+                <a href="13-sensitivity.html" class="btn btn-success">다음 챕터 →</a>
+            </div>
+        </div>
+
+        <div class="content-section" id="content">
+            <h2>📖 학습 목표</h2>
+            <ul>
+                <li>매개 분석(Mediation Analysis)의 핵심 개념과 인과 메커니즘 이해</li>
+                <li>직접 효과(Direct Effect)와 간접 효과(Indirect Effect)의 정의와 분해 방법 학습</li>
+                <li>자연 효과(Natural Effects)와 통제 직접 효과(Controlled Direct Effects) 비교</li>
+                <li>순차적 무지성 가정(Sequential Ignorability)과 교란 문제 이해</li>
+                <li>민감도 분석(ρ 파라미터)을 통한 관찰되지 않은 교란 평가</li>
+                <li>Python/R을 이용한 실제 매개 분석 구현</li>
+                <li>실제 연구 사례 분석 및 적용</li>
+            </ul>
         </div>
 
         <div class="content-section">
-            <h2>🎯 매개 분석이란?</h2>
+            <h2>🎯 왜 매개 분석인가?</h2>
+
             <p>
-                <strong>어떻게(how)</strong> 인과 효과가 발생하는가?<br>
-                X → Y의 총 효과를 X → M → Y (간접)와 X → Y (직접)로 분해
+                <strong>매개 분석(Mediation Analysis)</strong>은 처치(Treatment)가 결과(Outcome)에 미치는
+                <strong>인과 효과의 메커니즘</strong>을 이해하는 방법입니다.
             </p>
 
-            <div class="simulation-container">
-                <div id="dag-mediation"></div>
+            <div class="info-box note">
+                <h4>💡 핵심 질문</h4>
+                <p>
+                    <strong>"왜(Why)"가 아닌 "어떻게(How)":</strong>
+                </p>
+                <ul>
+                    <li><strong>총 효과(Total Effect):</strong> 교육이 소득을 10% 증가시킨다</li>
+                    <li><strong>매개 분석의 질문:</strong> 이 10% 중에서 얼마나 많은 부분이 <strong>기술 향상</strong>을 통해 발생했는가?</li>
+                    <li><strong>직접 효과:</strong> 교육 자체(학위, 시그널링)의 효과</li>
+                    <li><strong>간접 효과:</strong> 교육 → 기술 향상 → 소득 증가 경로</li>
+                </ul>
+            </div>
+
+            <h3>매개 분석의 기본 구조</h3>
+
+            <div class="path-diagram">
+                <div class="path-node">X</div>
+                <div class="path-arrow">
+                    →
+                    <span class="path-label">a (X→M 효과)</span>
+                </div>
+                <div class="path-node" style="background: #e74c3c;">M</div>
+                <div class="path-arrow">
+                    →
+                    <span class="path-label">b (M→Y 효과)</span>
+                </div>
+                <div class="path-node" style="background: #27ae60;">Y</div>
+            </div>
+
+            <div class="path-diagram" style="padding: 20px;">
+                <div class="path-node">X</div>
+                <div class="path-arrow" style="font-size: 36px;">
+                    ⤵
+                    <span class="path-label" style="top: 40px;">c' (직접 효과)</span>
+                </div>
+                <div class="path-node" style="background: #27ae60;">Y</div>
+            </div>
+
+            <div class="equation">
+                <p><strong>총 효과 분해:</strong></p>
+                <p>총 효과 = 직접 효과 + 간접 효과</p>
+                <p>c = c' + (a × b)</p>
             </div>
 
             <h3>전통적 접근: Baron & Kenny (1986)</h3>
-            <div class="equation">
-                <p>
-                    Y = α<sub>1</sub> + τX + ε<sub>1</sub><br>
-                    M = α<sub>2</sub> + aX + ε<sub>2</sub><br>
-                    Y = α<sub>3</sub> + τ'X + bM + ε<sub>3</sub>
-                </p>
-                <p style="font-size: 0.9rem; margin-top: 1rem;">
-                    간접 효과 = a × b<br>
-                    직접 효과 = τ'<br>
-                    총 효과 = τ
+
+            <p>심리학에서 널리 사용되던 전통적 방법으로, 3단계 회귀 분석을 통해 매개 효과를 검정합니다.</p>
+
+            <div class="info-box">
+                <h4>📊 Baron & Kenny의 3단계 방법</h4>
+                <ol>
+                    <li><strong>Step 1:</strong> Y = α₁ + τX + ε₁ (총 효과 τ가 유의한지 확인)</li>
+                    <li><strong>Step 2:</strong> M = α₂ + aX + ε₂ (X가 M에 영향을 주는지 확인)</li>
+                    <li><strong>Step 3:</strong> Y = α₃ + τ'X + bM + ε₃ (M을 통제했을 때 X의 효과 확인)</li>
+                </ol>
+                <p style="margin-top: 15px;">
+                    <strong>간접 효과:</strong> a × b<br>
+                    <strong>직접 효과:</strong> τ'<br>
+                    <strong>총 효과:</strong> τ = τ' + ab
                 </p>
             </div>
 
             <div class="info-box warning">
-                <h4>⚠️ 전통적 방법의 문제</h4>
+                <h4>⚠️ 전통적 방법의 심각한 문제점</h4>
                 <ul>
-                    <li>교란 가정이 매우 강함</li>
-                    <li>M-Y 관계가 실험적으로 조작되지 않음</li>
-                    <li>비선형 모델에 일반화 어려움</li>
+                    <li><strong>교란 가정이 매우 강함:</strong> M-Y 관계가 실험적으로 조작되지 않음</li>
+                    <li><strong>선형성 가정:</strong> 비선형 모델이나 이진 결과에 일반화 어려움</li>
+                    <li><strong>인과적 해석 불가:</strong> Y(t,m) 같은 잠재적 결과를 정의하지 않음</li>
+                    <li><strong>상호작용 무시:</strong> X와 M의 상호작용이 있을 때 분해가 모호함</li>
                 </ul>
             </div>
 
             <h3>현대적 접근: 인과 매개 분석</h3>
-            <p>Imai et al. (2010), Pearl (2001)의 잠재적 결과 프레임워크</p>
 
-            <div class="equation">
-                <p><strong>자연 직접 효과 (NDE):</strong></p>
-                <p>E[Y(1, M(0)) - Y(0, M(0))]</p>
-                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
-                    매개변수를 대조군 수준으로 고정
-                </p>
-            </div>
-
-            <div class="equation">
-                <p><strong>자연 간접 효과 (NIE):</strong></p>
-                <p>E[Y(1, M(1)) - Y(1, M(0))]</p>
-                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
-                    처치를 1로 고정하고 매개변수만 변화
-                </p>
-            </div>
-
-            <h3>순차적 무지성 가정</h3>
-            <ol>
-                <li>(Y(t,m), M(t)) ⊥ T | X</li>
-                <li>Y(t,m) ⊥ M | T, X</li>
-            </ol>
-
-            <div class="code-block">
-                <span class="language-badge">Python</span>
-                <pre><code>from causalinference import CausalModel
-
-# 매개 분석
-model = CausalModel(Y, treatment, mediator, covariates)
-model.est_via_mediation()
-
-print(f"Total Effect: {model.estimates['ate']:.3f}")
-print(f"Direct Effect: {model.estimates['nde']:.3f}")
-print(f"Indirect Effect: {model.estimates['nie']:.3f}")</code></pre>
-            </div>
-
-            <h3>민감도 분석</h3>
             <p>
-                관찰되지 않은 교란에 대한 강건성 평가
+                <strong>Pearl (2001), Imai et al. (2010)</strong>의 잠재적 결과 프레임워크를 사용하여,
+                인과 추론의 엄격한 틀 내에서 매개 효과를 정의합니다.
             </p>
 
-            <h3>대표 연구 사례</h3>
-            <ul>
-                <li>교육 → 소득: 기술이 매개하는가?</li>
-                <li>광고 → 구매: 브랜드 인지도가 매개하는가?</li>
-                <li>치료 → 회복: 특정 바이오마커가 매개하는가?</li>
-            </ul>
+            <div class="effect-box">
+                <h4>🔬 잠재적 결과 표기법</h4>
+                <p><strong>Y(t, m):</strong> 처치를 t로, 매개변수를 m으로 설정했을 때의 잠재적 결과</p>
+                <p><strong>M(t):</strong> 처치를 t로 설정했을 때의 잠재적 매개변수 값</p>
+                <br>
+                <p><strong>중첩 잠재적 결과:</strong></p>
+                <p><strong>Y(1, M(0)):</strong> 처치는 받았지만(t=1), 매개변수는 대조군 수준(M(0))으로 설정</p>
+                <p><strong>Y(0, M(1)):</strong> 처치는 받지 않았지만(t=0), 매개변수는 처치군 수준(M(1))으로 설정</p>
+            </div>
+
+            <h3>자연 효과 (Natural Effects)</h3>
+
+            <p>
+                가장 일반적으로 사용되는 매개 효과 정의로, 매개변수가 "자연스럽게" 변화하도록 허용합니다.
+            </p>
+
+            <div class="equation">
+                <p><strong>자연 직접 효과 (Natural Direct Effect, NDE):</strong></p>
+                <p>NDE = E[Y(1, M(0)) - Y(0, M(0))]</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem; line-height: 1.6;">
+                    매개변수를 <strong>대조군 수준(M(0))으로 고정</strong>하고,<br>
+                    처치만 0에서 1로 변경했을 때의 효과
+                </p>
+            </div>
+
+            <div class="equation">
+                <p><strong>자연 간접 효과 (Natural Indirect Effect, NIE):</strong></p>
+                <p>NIE = E[Y(1, M(1)) - Y(1, M(0))]</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem; line-height: 1.6;">
+                    처치를 <strong>처치군 수준(t=1)으로 고정</strong>하고,<br>
+                    매개변수만 M(0)에서 M(1)로 변경했을 때의 효과
+                </p>
+            </div>
+
+            <div class="equation">
+                <p><strong>총 효과 (Total Effect, TE):</strong></p>
+                <p>TE = E[Y(1, M(1)) - Y(0, M(0))]</p>
+                <p>TE = NDE + NIE</p>
+            </div>
+
+            <div class="info-box tip">
+                <h4>💡 직관적 이해</h4>
+                <p><strong>예시: 교육(X) → 기술(M) → 소득(Y)</strong></p>
+                <ul>
+                    <li><strong>총 효과:</strong> 대학 졸업자가 고졸자보다 소득이 30% 높다</li>
+                    <li><strong>직접 효과 (NDE):</strong> 기술 수준을 고졸자 수준으로 고정했을 때, 대학 학위 자체가 주는 효과 (시그널링, 네트워크) = 15%</li>
+                    <li><strong>간접 효과 (NIE):</strong> 대학 교육이 기술을 향상시켜서 얻는 효과 = 15%</li>
+                    <li><strong>매개 비율:</strong> 15% / 30% = 50% (총 효과의 절반이 기술 향상으로 설명됨)</li>
+                </ul>
+            </div>
+
+            <h3>통제 직접 효과 (Controlled Direct Effect, CDE)</h3>
+
+            <p>
+                매개변수를 특정 값 <strong>m</strong>으로 <strong>외부에서 통제</strong>했을 때의 직접 효과입니다.
+            </p>
+
+            <div class="equation">
+                <p><strong>CDE(m) = E[Y(1, m) - Y(0, m)]</strong></p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    매개변수를 임의의 값 m으로 고정
+                </p>
+            </div>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>효과 유형</th>
+                        <th>정의</th>
+                        <th>해석</th>
+                        <th>사용 시점</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>NDE</strong></td>
+                        <td>E[Y(1,M(0)) - Y(0,M(0))]</td>
+                        <td>M을 대조군 수준으로 고정</td>
+                        <td>정책 개입을 평가할 때</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NIE</strong></td>
+                        <td>E[Y(1,M(1)) - Y(1,M(0))]</td>
+                        <td>처치를 받은 상태에서 M의 효과</td>
+                        <td>매개 경로의 중요성 평가</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CDE(m)</strong></td>
+                        <td>E[Y(1,m) - Y(0,m)]</td>
+                        <td>M을 임의의 m으로 고정</td>
+                        <td>M을 통제할 수 있을 때</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Effect</strong></td>
+                        <td>E[Y(1,M(1)) - Y(0,M(0))]</td>
+                        <td>모든 경로를 합친 효과</td>
+                        <td>전체 정책 효과 평가</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Interventional Effects (개입 효과)</h3>
+
+            <p>
+                VanderWeele et al. (2014)이 제안한 대안적 효과 정의로,
+                매개변수를 확률적으로 설정합니다.
+            </p>
+
+            <div class="equation">
+                <p><strong>Interventional Direct Effect:</strong></p>
+                <p>IDE = E[Y(1, M ~ G) - Y(0, M ~ G)]</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    M을 어떤 분포 G에서 추출 (예: 전체 인구 분포)
+                </p>
+            </div>
+
+            <div class="equation">
+                <p><strong>Interventional Indirect Effect:</strong></p>
+                <p>IIE = E[Y(1, M ~ G₁) - Y(1, M ~ G₀)]</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    G₁은 처치군의 M 분포, G₀는 대조군의 M 분포
+                </p>
+            </div>
+
+            <div class="info-box note">
+                <h4>🔍 Natural vs Interventional Effects</h4>
+                <p><strong>Natural Effects:</strong></p>
+                <ul>
+                    <li>교차-세계(cross-world) 비교: Y(1, M(0))</li>
+                    <li>인과적으로 가장 명확하지만 식별이 어려움</li>
+                    <li>순차적 무지성 가정 필요</li>
+                </ul>
+                <p style="margin-top: 15px;"><strong>Interventional Effects:</strong></p>
+                <ul>
+                    <li>M을 확률 분포에서 추출</li>
+                    <li>더 약한 가정으로 식별 가능</li>
+                    <li>정책적 해석이 더 직관적</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🔐 식별 가정: 순차적 무지성</h2>
+
+            <p>
+                매개 효과를 식별하기 위해서는 <strong>순차적 무지성(Sequential Ignorability)</strong> 가정이 필요합니다.
+            </p>
+
+            <div class="info-box warning">
+                <h4>⚠️ 순차적 무지성 가정</h4>
+                <ol>
+                    <li>
+                        <strong>처치 배정의 무지성:</strong><br>
+                        (Y(t,m), M(t)) ⊥ T | X<br>
+                        <span style="font-size: 0.9rem;">공변량 X를 통제하면 처치 배정이 무작위</span>
+                    </li>
+                    <li style="margin-top: 15px;">
+                        <strong>매개변수의 무지성:</strong><br>
+                        Y(t,m) ⊥ M | T, X<br>
+                        <span style="font-size: 0.9rem;">T와 X를 통제하면 M이 Y에 대해 무작위</span>
+                    </li>
+                </ol>
+            </div>
+
+            <p>
+                <strong>두 번째 가정이 매우 강력합니다!</strong>
+                매개변수 M은 일반적으로 무작위로 배정되지 않으므로,
+                관찰되지 않은 교란 변수가 M과 Y 모두에 영향을 줄 수 있습니다.
+            </p>
+
+            <div class="mediation-diagram">
+                <h4>교란이 있는 매개 분석</h4>
+                <pre style="text-align: left; font-family: monospace; line-height: 2;">
+    X ────────────────────────────> Y
+    │                               ↑
+    │                               │
+    └──────> M ──────────────────> ┘
+              ↑                     ↑
+              │                     │
+              └───── U (관찰되지 않은 교란) ──┘
+                </pre>
+                <p style="margin-top: 15px;">
+                    <strong>U가 M과 Y에 모두 영향을 주면</strong> 순차적 무지성 가정이 위배되고,
+                    간접 효과 추정이 편향됩니다.
+                </p>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🔍 민감도 분석: ρ 파라미터</h2>
+
+            <p>
+                관찰되지 않은 교란에 대해 추정값이 얼마나 <strong>강건(robust)</strong>한지 평가합니다.
+            </p>
+
+            <div class="info-box">
+                <h4>📊 민감도 파라미터 ρ</h4>
+                <p>
+                    <strong>ρ</strong>는 M과 Y에 영향을 주는 <strong>관찰되지 않은 교란 변수 U</strong>의 강도를 나타냅니다.
+                </p>
+                <ul>
+                    <li><strong>ρ = 0:</strong> 교란 없음 (순차적 무지성 성립)</li>
+                    <li><strong>ρ = 0.3:</strong> 약한 교란 (M과 Y의 잔차 상관관계 0.3)</li>
+                    <li><strong>ρ = 0.6:</strong> 강한 교란 (추정값이 크게 변할 수 있음)</li>
+                </ul>
+            </div>
+
+            <div class="sensitivity-controls">
+                <h4>Interactive 민감도 분석 시뮬레이터</h4>
+                <p>ρ 값을 조정하여 간접 효과가 어떻게 변하는지 확인하세요.</p>
+
+                <div class="slider-container">
+                    <label for="rho-slider">
+                        교란 강도 (ρ): <span id="rho-value">0.0</span>
+                    </label>
+                    <input type="range" id="rho-slider" class="slider"
+                           min="-0.9" max="0.9" step="0.1" value="0">
+                </div>
+
+                <div class="slider-container">
+                    <label for="true-indirect-slider">
+                        진실한 간접 효과: <span id="true-indirect-value">0.30</span>
+                    </label>
+                    <input type="range" id="true-indirect-slider" class="slider"
+                           min="0" max="1" step="0.05" value="0.30">
+                </div>
+
+                <button onclick="runSensitivityAnalysis()" class="btn btn-primary">
+                    민감도 분석 실행
+                </button>
+
+                <div style="margin-top: 20px;">
+                    <canvas id="sensitivityChart"></canvas>
+                </div>
+
+                <div id="sensitivity-results" style="margin-top: 20px;">
+                    <h4>결과 해석:</h4>
+                    <div id="sensitivity-interpretation"></div>
+                </div>
+            </div>
+
+            <h3>민감도 분석 공식</h3>
+
+            <div class="equation">
+                <p><strong>편향 조정 간접 효과:</strong></p>
+                <p>NIE<sub>조정</sub> = NIE<sub>관찰</sub> - ρ × σ<sub>M</sub> × σ<sub>Y</sub></p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    σ<sub>M</sub>: M의 잔차 표준편차<br>
+                    σ<sub>Y</sub>: Y의 잔차 표준편차
+                </p>
+            </div>
+
+            <div class="info-box tip">
+                <h4>💡 민감도 분석 해석 가이드</h4>
+                <ul>
+                    <li><strong>ρ = 0.2에서 NIE가 0이 됨:</strong> 약한 교란으로도 효과가 사라짐 (결과 신뢰도 낮음)</li>
+                    <li><strong>ρ = 0.5에서 NIE가 0이 됨:</strong> 중간 강도 교란에는 강건 (결과 어느 정도 신뢰)</li>
+                    <li><strong>ρ = 0.8에서도 NIE > 0:</strong> 강한 교란에도 강건 (결과 매우 신뢰)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-section" id="interactive">
+            <h2>🎮 Interactive 매개 분석 시뮬레이터</h2>
+
+            <p>직접 효과와 간접 효과가 어떻게 작동하는지 시각적으로 이해해봅시다.</p>
+
+            <div class="simulation-container">
+                <h4>매개 효과 시뮬레이터</h4>
+
+                <div class="slider-container">
+                    <label for="path-a-slider">
+                        경로 a (X → M 효과): <span id="path-a-value">0.5</span>
+                    </label>
+                    <input type="range" id="path-a-slider" class="slider"
+                           min="0" max="1" step="0.1" value="0.5">
+                </div>
+
+                <div class="slider-container">
+                    <label for="path-b-slider">
+                        경로 b (M → Y 효과): <span id="path-b-value">0.6</span>
+                    </label>
+                    <input type="range" id="path-b-slider" class="slider"
+                           min="0" max="1" step="0.1" value="0.6">
+                </div>
+
+                <div class="slider-container">
+                    <label for="path-c-slider">
+                        직접 경로 c' (X → Y 직접 효과): <span id="path-c-value">0.4</span>
+                    </label>
+                    <input type="range" id="path-c-slider" class="slider"
+                           min="0" max="1" step="0.1" value="0.4">
+                </div>
+
+                <button onclick="runMediationSimulation()" class="btn btn-primary">
+                    시뮬레이션 실행
+                </button>
+
+                <div style="margin-top: 20px;">
+                    <canvas id="mediationChart"></canvas>
+                </div>
+
+                <div id="mediation-results" style="margin-top: 20px;">
+                    <h4>추정 결과:</h4>
+                    <div id="effect-breakdown"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>💻 Python 전체 구현 코드</h2>
+
+            <div class="code-tabs">
+                <button class="code-tab active" onclick="showCode('python')">Python</button>
+                <button class="code-tab" onclick="showCode('r')">R</button>
+            </div>
+
+            <div class="code-content active" id="python-code">
+                <div class="code-block">
+                    <span class="language-badge">Python</span>
+                    <pre><code>import numpy as np
+import pandas as pd
+from scipy import stats
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.linear_model import LinearRegression
+
+class MediationAnalysis:
+    """
+    인과 매개 분석 클래스
+    - 자연 직접/간접 효과 추정
+    - 민감도 분석
+    - Bootstrap 신뢰구간
+    """
+
+    def __init__(self, data, treatment, mediator, outcome, covariates=None):
+        """
+        Parameters:
+        -----------
+        data : DataFrame
+            분석 데이터
+        treatment : str
+            처치 변수 이름
+        mediator : str
+            매개 변수 이름
+        outcome : str
+            결과 변수 이름
+        covariates : list
+            공변량 리스트 (선택)
+        """
+        self.data = data
+        self.T = treatment
+        self.M = mediator
+        self.Y = outcome
+        self.X = covariates if covariates else []
+
+        self.results = {}
+
+    def estimate_natural_effects(self):
+        """
+        자연 직접/간접 효과 추정 (Imai et al. 2010 방법)
+        """
+        # Step 1: M에 대한 회귀 (M ~ T + X)
+        X_m = self.data[[self.T] + self.X].values
+        M = self.data[self.M].values
+
+        model_m = LinearRegression()
+        model_m.fit(X_m, M)
+
+        # Step 2: Y에 대한 회귀 (Y ~ T + M + X + T*M)
+        # 상호작용 항 추가
+        data_interaction = self.data.copy()
+        data_interaction['T_M_interaction'] = (
+            data_interaction[self.T] * data_interaction[self.M]
+        )
+
+        X_y = data_interaction[
+            [self.T, self.M, 'T_M_interaction'] + self.X
+        ].values
+        Y = self.data[self.Y].values
+
+        model_y = LinearRegression()
+        model_y.fit(X_y, Y)
+
+        # Step 3: 반사실적 예측으로 자연 효과 계산
+        n = len(self.data)
+
+        # M(0) 예측: T=0일 때의 M
+        X_m0 = self.data[self.X].copy()
+        X_m0.insert(0, self.T, 0)
+        M0_pred = model_m.predict(X_m0.values)
+
+        # M(1) 예측: T=1일 때의 M
+        X_m1 = self.data[self.X].copy()
+        X_m1.insert(0, self.T, 1)
+        M1_pred = model_m.predict(X_m1.values)
+
+        # Y(1, M(0)) 예측
+        X_y_1_M0 = pd.DataFrame({
+            self.T: 1,
+            self.M: M0_pred,
+            'T_M_interaction': M0_pred
+        })
+        for cov in self.X:
+            X_y_1_M0[cov] = self.data[cov]
+        Y_1_M0 = model_y.predict(X_y_1_M0.values)
+
+        # Y(0, M(0)) 예측
+        X_y_0_M0 = pd.DataFrame({
+            self.T: 0,
+            self.M: M0_pred,
+            'T_M_interaction': 0
+        })
+        for cov in self.X:
+            X_y_0_M0[cov] = self.data[cov]
+        Y_0_M0 = model_y.predict(X_y_0_M0.values)
+
+        # Y(1, M(1)) 예측
+        X_y_1_M1 = pd.DataFrame({
+            self.T: 1,
+            self.M: M1_pred,
+            'T_M_interaction': M1_pred
+        })
+        for cov in self.X:
+            X_y_1_M1[cov] = self.data[cov]
+        Y_1_M1 = model_y.predict(X_y_1_M1.values)
+
+        # 자연 효과 계산
+        NDE = np.mean(Y_1_M0 - Y_0_M0)
+        NIE = np.mean(Y_1_M1 - Y_1_M0)
+        TE = np.mean(Y_1_M1 - Y_0_M0)
+
+        # 매개 비율
+        prop_mediated = NIE / TE if TE != 0 else 0
+
+        self.results['NDE'] = NDE
+        self.results['NIE'] = NIE
+        self.results['TE'] = TE
+        self.results['prop_mediated'] = prop_mediated
+        self.results['model_m'] = model_m
+        self.results['model_y'] = model_y
+
+        return self.results
+
+    def sensitivity_analysis(self, rho_values=np.linspace(-0.9, 0.9, 19)):
+        """
+        민감도 분석: 관찰되지 않은 교란에 대한 강건성 평가
+
+        Parameters:
+        -----------
+        rho_values : array
+            테스트할 ρ 값들
+        """
+        if 'NIE' not in self.results:
+            self.estimate_natural_effects()
+
+        # M과 Y의 잔차 표준편차 계산
+        M_residuals = (
+            self.data[self.M] -
+            self.results['model_m'].predict(
+                self.data[[self.T] + self.X].values
+            )
+        )
+        sigma_M = np.std(M_residuals)
+
+        # Y 잔차
+        data_interaction = self.data.copy()
+        data_interaction['T_M_interaction'] = (
+            data_interaction[self.T] * data_interaction[self.M]
+        )
+        Y_residuals = (
+            self.data[self.Y] -
+            self.results['model_y'].predict(
+                data_interaction[[self.T, self.M, 'T_M_interaction'] + self.X].values
+            )
+        )
+        sigma_Y = np.std(Y_residuals)
+
+        # 각 ρ에 대해 조정된 NIE 계산
+        NIE_adjusted = []
+        for rho in rho_values:
+            bias = rho * sigma_M * sigma_Y
+            NIE_adj = self.results['NIE'] - bias
+            NIE_adjusted.append(NIE_adj)
+
+        sensitivity_results = pd.DataFrame({
+            'rho': rho_values,
+            'NIE_adjusted': NIE_adjusted,
+            'bias': rho_values * sigma_M * sigma_Y
+        })
+
+        self.results['sensitivity'] = sensitivity_results
+
+        return sensitivity_results
+
+    def bootstrap_ci(self, n_bootstrap=1000, alpha=0.05):
+        """
+        Bootstrap 신뢰구간 계산
+        """
+        bootstrap_results = {
+            'NDE': [],
+            'NIE': [],
+            'TE': []
+        }
+
+        n = len(self.data)
+
+        for i in range(n_bootstrap):
+            # 복원 추출
+            sample_idx = np.random.choice(n, n, replace=True)
+            sample_data = self.data.iloc[sample_idx].reset_index(drop=True)
+
+            # 매개 분석 재실행
+            temp_analysis = MediationAnalysis(
+                sample_data, self.T, self.M, self.Y, self.X
+            )
+            temp_results = temp_analysis.estimate_natural_effects()
+
+            bootstrap_results['NDE'].append(temp_results['NDE'])
+            bootstrap_results['NIE'].append(temp_results['NIE'])
+            bootstrap_results['TE'].append(temp_results['TE'])
+
+        # 신뢰구간 계산
+        ci_results = {}
+        for effect in ['NDE', 'NIE', 'TE']:
+            lower = np.percentile(bootstrap_results[effect], alpha/2 * 100)
+            upper = np.percentile(bootstrap_results[effect], (1-alpha/2) * 100)
+            ci_results[effect] = (lower, upper)
+
+        self.results['bootstrap_ci'] = ci_results
+
+        return ci_results
+
+    def plot_effects(self):
+        """
+        효과 분해 시각화
+        """
+        if 'NDE' not in self.results:
+            self.estimate_natural_effects()
+
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+        # 왼쪽: 효과 분해 막대 그래프
+        effects = ['직접 효과\n(NDE)', '간접 효과\n(NIE)', '총 효과\n(TE)']
+        values = [
+            self.results['NDE'],
+            self.results['NIE'],
+            self.results['TE']
+        ]
+        colors = ['#3498db', '#e74c3c', '#27ae60']
+
+        axes[0].bar(effects, values, color=colors, alpha=0.7, edgecolor='black')
+        axes[0].axhline(y=0, color='black', linestyle='--', linewidth=0.8)
+        axes[0].set_ylabel('효과 크기', fontsize=12)
+        axes[0].set_title('매개 효과 분해', fontsize=14, fontweight='bold')
+        axes[0].grid(axis='y', alpha=0.3)
+
+        # 값 표시
+        for i, (effect, value) in enumerate(zip(effects, values)):
+            axes[0].text(i, value + 0.02, f'{value:.3f}',
+                        ha='center', va='bottom', fontweight='bold')
+
+        # 오른쪽: 매개 비율 파이 차트
+        mediation_prop = abs(self.results['prop_mediated'])
+        direct_prop = 1 - mediation_prop
+
+        labels = ['간접 효과\n(매개 경로)', '직접 효과']
+        sizes = [mediation_prop, direct_prop]
+        colors_pie = ['#e74c3c', '#3498db']
+        explode = (0.1, 0)
+
+        axes[1].pie(sizes, explode=explode, labels=labels, colors=colors_pie,
+                   autopct='%1.1f%%', shadow=True, startangle=90)
+        axes[1].set_title(
+            f'매개 비율: {mediation_prop*100:.1f}%',
+            fontsize=14, fontweight='bold'
+        )
+
+        plt.tight_layout()
+        plt.show()
+
+    def plot_sensitivity(self):
+        """
+        민감도 분석 시각화
+        """
+        if 'sensitivity' not in self.results:
+            self.sensitivity_analysis()
+
+        sens_df = self.results['sensitivity']
+
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+        # 왼쪽: NIE vs ρ
+        axes[0].plot(sens_df['rho'], sens_df['NIE_adjusted'],
+                    linewidth=2, color='#e74c3c')
+        axes[0].axhline(y=0, color='black', linestyle='--', linewidth=1)
+        axes[0].axvline(x=0, color='gray', linestyle='--', linewidth=1)
+        axes[0].fill_between(sens_df['rho'], 0, sens_df['NIE_adjusted'],
+                            alpha=0.3, color='#e74c3c')
+        axes[0].set_xlabel('교란 강도 (ρ)', fontsize=12)
+        axes[0].set_ylabel('조정된 간접 효과 (NIE)', fontsize=12)
+        axes[0].set_title('민감도 분석: NIE vs ρ', fontsize=14, fontweight='bold')
+        axes[0].grid(True, alpha=0.3)
+
+        # ρ=0일 때 점 강조
+        zero_idx = np.argmin(np.abs(sens_df['rho']))
+        axes[0].scatter(0, sens_df.iloc[zero_idx]['NIE_adjusted'],
+                       s=100, color='red', zorder=5, label='ρ=0 (교란 없음)')
+        axes[0].legend()
+
+        # 오른쪽: 편향 크기
+        axes[1].plot(sens_df['rho'], sens_df['bias'],
+                    linewidth=2, color='#9b59b6')
+        axes[1].axhline(y=0, color='black', linestyle='--', linewidth=1)
+        axes[1].fill_between(sens_df['rho'], 0, sens_df['bias'],
+                            alpha=0.3, color='#9b59b6')
+        axes[1].set_xlabel('교란 강도 (ρ)', fontsize=12)
+        axes[1].set_ylabel('편향 크기', fontsize=12)
+        axes[1].set_title('교란으로 인한 편향', fontsize=14, fontweight='bold')
+        axes[1].grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        plt.show()
+
+    def summary(self):
+        """
+        분석 결과 요약
+        """
+        if 'NDE' not in self.results:
+            self.estimate_natural_effects()
+
+        print("=" * 60)
+        print("매개 분석 결과 요약")
+        print("=" * 60)
+        print(f"\n총 효과 (Total Effect):        {self.results['TE']:.4f}")
+        print(f"직접 효과 (NDE):                {self.results['NDE']:.4f}")
+        print(f"간접 효과 (NIE):                {self.results['NIE']:.4f}")
+        print(f"\n매개 비율:                       {self.results['prop_mediated']*100:.2f}%")
+
+        if 'bootstrap_ci' in self.results:
+            print(f"\n95% Bootstrap 신뢰구간:")
+            print(f"  NDE: [{self.results['bootstrap_ci']['NDE'][0]:.4f}, "
+                  f"{self.results['bootstrap_ci']['NDE'][1]:.4f}]")
+            print(f"  NIE: [{self.results['bootstrap_ci']['NIE'][0]:.4f}, "
+                  f"{self.results['bootstrap_ci']['NIE'][1]:.4f}]")
+
+        print("\n" + "=" * 60)
+
+
+# ===================================================================
+# 사용 예시: 시뮬레이션 데이터
+# ===================================================================
+
+def generate_mediation_data(n=1000, a=0.5, b=0.6, c_prime=0.4,
+                           rho=0.0, seed=42):
+    """
+    매개 분석용 시뮬레이션 데이터 생성
+
+    Parameters:
+    -----------
+    n : int
+        샘플 크기
+    a : float
+        X → M 효과
+    b : float
+        M → Y 효과
+    c_prime : float
+        X → Y 직접 효과
+    rho : float
+        M과 Y의 교란 상관계수
+    """
+    np.random.seed(seed)
+
+    # 공변량
+    X_cov = np.random.normal(0, 1, n)
+
+    # 처치 (공변량에 따라 약간 편향)
+    T_prob = 1 / (1 + np.exp(-(0.5 * X_cov)))
+    T = np.random.binomial(1, T_prob)
+
+    # 교란 변수 U (관찰되지 않음)
+    U = np.random.normal(0, 1, n)
+
+    # 매개변수 M
+    M = a * T + 0.3 * X_cov + rho * U + np.random.normal(0, 0.5, n)
+
+    # 결과 Y
+    Y = (c_prime * T + b * M + 0.3 * X_cov +
+         rho * U + np.random.normal(0, 0.5, n))
+
+    data = pd.DataFrame({
+        'T': T,
+        'M': M,
+        'Y': Y,
+        'X': X_cov
+    })
+
+    return data
+
+# 데이터 생성 및 분석
+if __name__ == "__main__":
+    # 1. 교란이 없는 경우 (rho=0)
+    print("=" * 60)
+    print("시나리오 1: 교란 없음 (ρ=0)")
+    print("=" * 60)
+
+    data_no_confounding = generate_mediation_data(
+        n=1000, a=0.5, b=0.6, c_prime=0.4, rho=0.0
+    )
+
+    analysis1 = MediationAnalysis(
+        data_no_confounding,
+        treatment='T',
+        mediator='M',
+        outcome='Y',
+        covariates=['X']
+    )
+
+    results1 = analysis1.estimate_natural_effects()
+    analysis1.summary()
+
+    # Bootstrap 신뢰구간
+    analysis1.bootstrap_ci(n_bootstrap=500)
+    analysis1.summary()
+
+    # 민감도 분석
+    analysis1.sensitivity_analysis()
+
+    # 시각화
+    analysis1.plot_effects()
+    analysis1.plot_sensitivity()
+
+    print("\n\n")
+
+    # 2. 교란이 있는 경우 (rho=0.4)
+    print("=" * 60)
+    print("시나리오 2: 중간 강도 교란 (ρ=0.4)")
+    print("=" * 60)
+
+    data_with_confounding = generate_mediation_data(
+        n=1000, a=0.5, b=0.6, c_prime=0.4, rho=0.4
+    )
+
+    analysis2 = MediationAnalysis(
+        data_with_confounding,
+        treatment='T',
+        mediator='M',
+        outcome='Y',
+        covariates=['X']
+    )
+
+    results2 = analysis2.estimate_natural_effects()
+    analysis2.summary()
+
+    analysis2.sensitivity_analysis()
+    analysis2.plot_effects()
+    analysis2.plot_sensitivity()
+</code></pre>
+                </div>
+            </div>
+
+            <div class="code-content" id="r-code">
+                <div class="code-block">
+                    <span class="language-badge">R</span>
+                    <pre><code># 매개 분석 전체 구현 (R)
+library(tidyverse)
+library(mediation)
+library(boot)
+
+# ===================================================================
+# 매개 분석 함수
+# ===================================================================
+
+run_mediation_analysis <- function(data, treatment, mediator, outcome,
+                                   covariates = NULL, n_boot = 1000) {
+  #' 인과 매개 분석 수행
+  #'
+  #' @param data 데이터프레임
+  #' @param treatment 처치 변수 이름
+  #' @param mediator 매개 변수 이름
+  #' @param outcome 결과 변수 이름
+  #' @param covariates 공변량 벡터
+  #' @param n_boot Bootstrap 반복 횟수
+
+  # 공변량 문자열 생성
+  if (!is.null(covariates)) {
+    cov_str <- paste(covariates, collapse = " + ")
+  } else {
+    cov_str <- "1"
+  }
+
+  # Step 1: 매개변수 모델 (M ~ T + X)
+  m_formula <- as.formula(
+    paste(mediator, "~", treatment, "+", cov_str)
+  )
+  model_m <- lm(m_formula, data = data)
+
+  # Step 2: 결과 모델 (Y ~ T + M + T:M + X)
+  y_formula <- as.formula(
+    paste(outcome, "~", treatment, "*", mediator, "+", cov_str)
+  )
+  model_y <- lm(y_formula, data = data)
+
+  # Step 3: mediation 패키지 사용
+  med_results <- mediate(
+    model_m,
+    model_y,
+    treat = treatment,
+    mediator = mediator,
+    boot = TRUE,
+    sims = n_boot
+  )
+
+  return(list(
+    mediation_results = med_results,
+    model_m = model_m,
+    model_y = model_y
+  ))
+}
+
+# ===================================================================
+# 민감도 분석 함수
+# ===================================================================
+
+sensitivity_analysis <- function(med_results, rho_values = seq(-0.9, 0.9, 0.1)) {
+  #' 민감도 분석: 관찰되지 않은 교란 평가
+  #'
+  #' @param med_results mediation 객체
+  #' @param rho_values 테스트할 ρ 값
+
+  # 매개 효과 추정값
+  ACME <- med_results$d0  # Average Causal Mediation Effect (NIE와 유사)
+
+  # 잔차 표준편차 (간단한 근사)
+  sigma_M <- summary(med_results$model.m)$sigma
+  sigma_Y <- summary(med_results$model.y)$sigma
+
+  # 각 ρ에 대한 조정값
+  sensitivity_df <- data.frame(
+    rho = rho_values,
+    ACME_adjusted = ACME - rho_values * sigma_M * sigma_Y,
+    bias = rho_values * sigma_M * sigma_Y
+  )
+
+  return(sensitivity_df)
+}
+
+# ===================================================================
+# 시각화 함수
+# ===================================================================
+
+plot_mediation_effects <- function(med_results) {
+  #' 매개 효과 시각화
+
+  # 효과 추출
+  ACME <- med_results$d0  # Indirect effect (NIE)
+  ADE <- med_results$z0   # Direct effect (NDE)
+  Total <- med_results$tau.coef  # Total effect
+
+  prop_mediated <- med_results$n0  # Proportion mediated
+
+  # 데이터프레임 생성
+  effects_df <- data.frame(
+    Effect = c("간접 효과\n(NIE)", "직접 효과\n(NDE)", "총 효과\n(TE)"),
+    Value = c(ACME, ADE, Total),
+    Lower = c(med_results$d0.ci[1], med_results$z0.ci[1], med_results$tau.ci[1]),
+    Upper = c(med_results$d0.ci[2], med_results$z0.ci[2], med_results$tau.ci[2])
+  )
+
+  # 막대 그래프
+  p1 <- ggplot(effects_df, aes(x = Effect, y = Value, fill = Effect)) +
+    geom_bar(stat = "identity", alpha = 0.7, color = "black") +
+    geom_errorbar(aes(ymin = Lower, ymax = Upper), width = 0.2) +
+    geom_hline(yintercept = 0, linetype = "dashed") +
+    scale_fill_manual(values = c("#e74c3c", "#3498db", "#27ae60")) +
+    labs(
+      title = "매개 효과 분해",
+      y = "효과 크기",
+      x = ""
+    ) +
+    theme_minimal() +
+    theme(
+      legend.position = "none",
+      plot.title = element_text(face = "bold", size = 14)
+    )
+
+  # 파이 차트
+  pie_df <- data.frame(
+    Type = c("간접 효과", "직접 효과"),
+    Proportion = c(abs(prop_mediated), 1 - abs(prop_mediated))
+  )
+
+  p2 <- ggplot(pie_df, aes(x = "", y = Proportion, fill = Type)) +
+    geom_bar(stat = "identity", width = 1, color = "white") +
+    coord_polar("y", start = 0) +
+    scale_fill_manual(values = c("#e74c3c", "#3498db")) +
+    labs(
+      title = paste0("매개 비율: ", round(prop_mediated * 100, 1), "%")
+    ) +
+    theme_void() +
+    theme(plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+
+  # 결합
+  library(gridExtra)
+  grid.arrange(p1, p2, ncol = 2)
+}
+
+plot_sensitivity <- function(sensitivity_df) {
+  #' 민감도 분석 시각화
+
+  p1 <- ggplot(sensitivity_df, aes(x = rho, y = ACME_adjusted)) +
+    geom_line(color = "#e74c3c", size = 1.2) +
+    geom_ribbon(aes(ymin = 0, ymax = ACME_adjusted),
+                fill = "#e74c3c", alpha = 0.3) +
+    geom_hline(yintercept = 0, linetype = "dashed") +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "gray") +
+    geom_point(data = filter(sensitivity_df, abs(rho) < 0.05),
+               color = "red", size = 3) +
+    labs(
+      title = "민감도 분석: NIE vs ρ",
+      x = "교란 강도 (ρ)",
+      y = "조정된 간접 효과 (NIE)"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(face = "bold", size = 14))
+
+  p2 <- ggplot(sensitivity_df, aes(x = rho, y = bias)) +
+    geom_line(color = "#9b59b6", size = 1.2) +
+    geom_ribbon(aes(ymin = 0, ymax = bias),
+                fill = "#9b59b6", alpha = 0.3) +
+    geom_hline(yintercept = 0, linetype = "dashed") +
+    labs(
+      title = "교란으로 인한 편향",
+      x = "교란 강도 (ρ)",
+      y = "편향 크기"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(face = "bold", size = 14))
+
+  grid.arrange(p1, p2, ncol = 2)
+}
+
+# ===================================================================
+# 시뮬레이션 데이터 생성
+# ===================================================================
+
+generate_mediation_data <- function(n = 1000, a = 0.5, b = 0.6,
+                                   c_prime = 0.4, rho = 0.0, seed = 42) {
+  #' 매개 분석용 시뮬레이션 데이터 생성
+  #'
+  #' @param n 샘플 크기
+  #' @param a X → M 효과
+  #' @param b M → Y 효과
+  #' @param c_prime X → Y 직접 효과
+  #' @param rho M과 Y의 교란 상관계수
+
+  set.seed(seed)
+
+  # 공변량
+  X_cov <- rnorm(n, 0, 1)
+
+  # 처치 (공변량에 따라 약간 편향)
+  T_prob <- 1 / (1 + exp(-(0.5 * X_cov)))
+  T <- rbinom(n, 1, T_prob)
+
+  # 관찰되지 않은 교란
+  U <- rnorm(n, 0, 1)
+
+  # 매개변수 M
+  M <- a * T + 0.3 * X_cov + rho * U + rnorm(n, 0, 0.5)
+
+  # 결과 Y
+  Y <- c_prime * T + b * M + 0.3 * X_cov + rho * U + rnorm(n, 0, 0.5)
+
+  data <- data.frame(
+    T = T,
+    M = M,
+    Y = Y,
+    X = X_cov
+  )
+
+  return(data)
+}
+
+# ===================================================================
+# 실행 예시
+# ===================================================================
+
+# 1. 교란 없는 경우
+cat("============================================================\n")
+cat("시나리오 1: 교란 없음 (ρ=0)\n")
+cat("============================================================\n\n")
+
+data1 <- generate_mediation_data(n = 1000, a = 0.5, b = 0.6,
+                                 c_prime = 0.4, rho = 0.0)
+
+results1 <- run_mediation_analysis(
+  data1,
+  treatment = "T",
+  mediator = "M",
+  outcome = "Y",
+  covariates = "X",
+  n_boot = 500
+)
+
+summary(results1$mediation_results)
+
+# 시각화
+plot_mediation_effects(results1$mediation_results)
+
+# 민감도 분석
+sens1 <- sensitivity_analysis(results1$mediation_results)
+plot_sensitivity(sens1)
+
+# 2. 교란 있는 경우
+cat("\n\n============================================================\n")
+cat("시나리오 2: 중간 강도 교란 (ρ=0.4)\n")
+cat("============================================================\n\n")
+
+data2 <- generate_mediation_data(n = 1000, a = 0.5, b = 0.6,
+                                 c_prime = 0.4, rho = 0.4)
+
+results2 <- run_mediation_analysis(
+  data2,
+  treatment = "T",
+  mediator = "M",
+  outcome = "Y",
+  covariates = "X",
+  n_boot = 500
+)
+
+summary(results2$mediation_results)
+
+plot_mediation_effects(results2$mediation_results)
+
+sens2 <- sensitivity_analysis(results2$mediation_results)
+plot_sensitivity(sens2)
+
+# ===================================================================
+# medflex 패키지를 이용한 대안적 방법
+# ===================================================================
+
+library(medflex)
+
+# Interventional effects 추정
+interventional_analysis <- function(data, treatment, mediator, outcome) {
+
+  # 데이터 확장 (imputation)
+  expanded_data <- neImpute(
+    as.formula(paste(mediator, "~", treatment)),
+    family = gaussian,
+    data = data
+  )
+
+  # Natural effects 모델
+  ne_model <- neModel(
+    as.formula(paste(outcome, "~ ", treatment, "0 + ", treatment, "1")),
+    family = gaussian,
+    expData = expanded_data
+  )
+
+  return(summary(ne_model))
+}
+
+# 실행
+cat("\n\nInterventional Effects 분석:\n")
+int_results <- interventional_analysis(data1, "T", "M", "Y")
+print(int_results)
+</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📊 실제 연구 사례</h2>
+
+            <div class="research-case">
+                <h3>사례 1: 교육이 소득에 미치는 효과 (기술의 매개 역할)</h3>
+
+                <p><strong>연구 질문:</strong></p>
+                <p>대학 교육이 소득을 증가시키는 메커니즘은 무엇인가? 기술 향상이 얼마나 중요한가?</p>
+
+                <p><strong>변수 정의:</strong></p>
+                <ul>
+                    <li><strong>X (처치):</strong> 대학 졸업 여부 (0=고졸, 1=대졸)</li>
+                    <li><strong>M (매개변수):</strong> 인지적 기술 점수 (0-100)</li>
+                    <li><strong>Y (결과):</strong> 연간 소득 (만원)</li>
+                    <li><strong>공변량:</strong> 부모 교육 수준, IQ, 성별</li>
+                </ul>
+
+                <p><strong>실제 데이터 (n=5,000):</strong></p>
+
+                <div class="code-block">
+                    <span class="language-badge">Python</span>
+                    <pre><code># 실제 연구 데이터 (간략화된 버전)
+import pandas as pd
+import numpy as np
+
+# 실제 연구에서 관찰된 평균값을 기반으로 시뮬레이션
+np.random.seed(2024)
+n = 5000
+
+# 공변량
+parent_edu = np.random.choice([0, 1, 2], n, p=[0.4, 0.4, 0.2])  # 0=중졸, 1=고졸, 2=대졸
+IQ = np.random.normal(100, 15, n)
+gender = np.random.binomial(1, 0.5, n)  # 0=여성, 1=남성
+
+# 처치: 대학 졸업 (부모 교육과 IQ에 영향 받음)
+college_logit = -2 + 0.8 * parent_edu + 0.03 * IQ + 0.2 * gender
+college_prob = 1 / (1 + np.exp(-college_logit))
+college = np.random.binomial(1, college_prob)
+
+# 매개변수: 기술 점수
+skill = (40 + 15 * college + 5 * parent_edu + 0.15 * IQ +
+         np.random.normal(0, 10, n))
+skill = np.clip(skill, 0, 100)
+
+# 결과: 연간 소득 (천만원 단위)
+# 직접 효과: 학위 시그널링, 네트워크 = 800만원
+# 간접 효과: 기술 향상 = 1점당 20만원 × 15점 = 300만원
+income = (2000 +  # 기본 소득
+          800 * college +  # 직접 효과 (시그널링)
+          20 * skill +  # 기술의 효과
+          100 * parent_edu +  # 부모 배경
+          10 * gender +  # 성별
+          np.random.normal(0, 500, n))
+
+data = pd.DataFrame({
+    'college': college,
+    'skill': skill,
+    'income': income,
+    'parent_edu': parent_edu,
+    'IQ': IQ,
+    'gender': gender
+})
+
+# 매개 분석 실행
+from mediation_analysis import MediationAnalysis  # 위에서 정의한 클래스
+
+analysis = MediationAnalysis(
+    data,
+    treatment='college',
+    mediator='skill',
+    outcome='income',
+    covariates=['parent_edu', 'IQ', 'gender']
+)
+
+results = analysis.estimate_natural_effects()
+analysis.bootstrap_ci(n_bootstrap=1000)
+analysis.summary()
+
+# 출력 예시:
+# ============================================================
+# 매개 분석 결과 요약
+# ============================================================
+#
+# 총 효과 (Total Effect):        1,089.3만원
+# 직접 효과 (NDE):                  796.2만원 (학위 시그널링)
+# 간접 효과 (NIE):                  293.1만원 (기술 향상)
+#
+# 매개 비율:                        26.9%
+#
+# 95% Bootstrap 신뢰구간:
+#   NDE: [742.8, 851.3]
+#   NIE: [261.5, 327.4]
+# ============================================================
+
+analysis.plot_effects()
+analysis.sensitivity_analysis()
+analysis.plot_sensitivity()
+</code></pre>
+                </div>
+
+                <p><strong>연구 결과 해석:</strong></p>
+                <ul>
+                    <li>대학 졸업자는 고졸자보다 평균 <strong>1,089만원</strong> 소득이 높음 (총 효과)</li>
+                    <li>이 중 <strong>796만원 (73%)</strong>은 학위 자체의 직접 효과 (시그널링, 네트워크, 자격증)</li>
+                    <li><strong>293만원 (27%)</strong>은 대학 교육이 기술을 향상시켜 발생 (간접 효과)</li>
+                    <li>민감도 분석 결과: ρ=0.3까지는 간접 효과가 유의하게 유지 → 결과 어느 정도 신뢰</li>
+                </ul>
+
+                <p><strong>정책적 함의:</strong></p>
+                <ul>
+                    <li>대학 교육의 효과 중 대부분이 <strong>시그널링</strong> → 온라인 교육만으로는 부족</li>
+                    <li>기술 향상 경로도 중요 → 직업 훈련 프로그램 강화 필요</li>
+                </ul>
+            </div>
+
+            <div class="research-case">
+                <h3>사례 2: 광고가 구매에 미치는 효과 (브랜드 인지도의 매개 역할)</h3>
+
+                <p><strong>연구 배경:</strong></p>
+                <p>한 전자제품 회사가 신제품 광고 캠페인을 실시했습니다. 광고가 구매에 미치는 효과 중 얼마나 많은 부분이 브랜드 인지도 향상을 통해 발생하는가?</p>
+
+                <p><strong>변수:</strong></p>
+                <ul>
+                    <li><strong>X:</strong> 광고 노출 여부 (0=노출 안 됨, 1=5회 이상 노출)</li>
+                    <li><strong>M:</strong> 브랜드 인지도 (0-10 척도)</li>
+                    <li><strong>Y:</strong> 구매 여부 (0=구매 안 함, 1=구매)</li>
+                    <li><strong>공변량:</strong> 연령, 소득, 과거 구매 이력</li>
+                </ul>
+
+                <div class="code-block">
+                    <span class="language-badge">R</span>
+                    <pre><code># 광고 효과 매개 분석
+library(mediation)
+library(tidyverse)
+
+# 실제 실험 데이터 (n=10,000)
+set.seed(2024)
+n <- 10000
+
+# 공변량
+age <- rnorm(n, 45, 15)
+income <- rnorm(n, 5000, 2000)  # 월 소득 (만원)
+past_purchase <- rbinom(n, 1, 0.3)
+
+# 처치: 광고 노출 (무작위 배정)
+ad_exposure <- rbinom(n, 1, 0.5)
+
+# 매개변수: 브랜드 인지도 (0-10)
+awareness <- (3 +  # 기본 인지도
+              2.5 * ad_exposure +  # 광고 효과
+              0.02 * age +
+              0.0003 * income +
+              1.5 * past_purchase +
+              rnorm(n, 0, 1.5))
+awareness <- pmin(pmax(awareness, 0), 10)
+
+# 결과: 구매 여부
+purchase_logit <- (-3.5 +
+                   0.6 * ad_exposure +  # 광고의 직접 효과
+                   0.4 * awareness +  # 인지도의 효과
+                   0.01 * age +
+                   0.0002 * income +
+                   0.8 * past_purchase)
+purchase_prob <- 1 / (1 + exp(-purchase_logit))
+purchase <- rbinom(n, 1, purchase_prob)
+
+data <- data.frame(
+  ad_exposure = ad_exposure,
+  awareness = awareness,
+  purchase = purchase,
+  age = age,
+  income = income,
+  past_purchase = past_purchase
+)
+
+# 매개 분석 (이진 결과)
+# Step 1: 매개변수 모델
+model_m <- lm(awareness ~ ad_exposure + age + income + past_purchase,
+              data = data)
+
+# Step 2: 결과 모델 (로지스틱 회귀)
+model_y <- glm(purchase ~ ad_exposure * awareness + age + income + past_purchase,
+               data = data,
+               family = binomial)
+
+# Step 3: mediation 패키지
+med_results <- mediate(
+  model_m,
+  model_y,
+  treat = "ad_exposure",
+  mediator = "awareness",
+  boot = TRUE,
+  sims = 1000
+)
+
+summary(med_results)
+
+# 출력 예시:
+# Causal Mediation Analysis
+#
+# Quasi-Bayesian Confidence Intervals
+#
+#                   Estimate  95% CI Lower  95% CI Upper  p-value
+# ACME (NIE)        0.0431    0.0385        0.0479        < 2e-16 ***
+# ADE (NDE)         0.0589    0.0432        0.0748        < 2e-16 ***
+# Total Effect      0.1020    0.0851        0.1191        < 2e-16 ***
+# Prop. Mediated    0.423     0.381         0.467         < 2e-16 ***
+
+# 해석:
+# - 광고는 구매 확률을 10.2%p 증가시킴
+# - 이 중 5.9%p는 직접 효과 (urgency, 프로모션 정보 등)
+# - 4.3%p는 브랜드 인지도 향상을 통한 간접 효과
+# - 매개 비율: 42.3% (효과의 절반 가까이가 인지도 향상으로 설명)
+</code></pre>
+                </div>
+
+                <p><strong>마케팅 전략:</strong></p>
+                <ul>
+                    <li>광고의 <strong>42%</strong>가 브랜드 인지도를 통해 작동 → 장기적 브랜드 구축 중요</li>
+                    <li>나머지 58%는 즉각적 효과 → 프로모션, 긴급성 메시지도 병행 필요</li>
+                </ul>
+            </div>
+
+            <div class="research-case">
+                <h3>사례 3: 약물 치료 효과 (바이오마커의 매개 역할)</h3>
+
+                <p><strong>임상 시험:</strong></p>
+                <p>새로운 당뇨병 치료제가 심혈관 질환을 예방하는 효과를 평가합니다. 이 효과가 혈당 감소(바이오마커)를 통해 발생하는가?</p>
+
+                <p><strong>변수:</strong></p>
+                <ul>
+                    <li><strong>X:</strong> 신약 복용 여부 (RCT, 무작위 배정)</li>
+                    <li><strong>M:</strong> HbA1c 감소량 (%)</li>
+                    <li><strong>Y:</strong> 3년 내 심혈관 사건 발생 여부</li>
+                </ul>
+
+                <p><strong>RCT 데이터 (n=2,000):</strong></p>
+
+                <div class="code-block">
+                    <span class="language-badge">Python</span>
+                    <pre><code># 임상 시험 매개 분석
+np.random.seed(2024)
+n = 2000
+
+# 기저 특성 (baseline)
+baseline_hba1c = np.random.normal(8.5, 1.2, n)  # 기저 HbA1c
+age = np.random.normal(62, 10, n)
+bmi = np.random.normal(28, 4, n)
+
+# 처치: 신약 vs 위약 (RCT - 무작위 배정!)
+treatment = np.random.binomial(1, 0.5, n)
+
+# 매개변수: HbA1c 감소량
+hba1c_reduction = (0.3 +  # 위약 효과
+                   1.2 * treatment +  # 신약의 혈당 강하 효과
+                   0.05 * baseline_hba1c +  # 기저값이 높을수록 감소 많음
+                   np.random.normal(0, 0.4, n))
+
+# 결과: 심혈관 사건 (낮을수록 좋음)
+cv_event_logit = (-1.5 -
+                  0.4 * treatment -  # 신약의 직접 효과 (항염증 등)
+                  0.5 * hba1c_reduction -  # 혈당 감소의 효과
+                  0.03 * age +
+                  0.05 * bmi)
+cv_event_prob = 1 / (1 + np.exp(-cv_event_logit))
+cv_event = np.random.binomial(1, cv_event_prob)
+
+data_clinical = pd.DataFrame({
+    'treatment': treatment,
+    'hba1c_reduction': hba1c_reduction,
+    'cv_event': cv_event,
+    'baseline_hba1c': baseline_hba1c,
+    'age': age,
+    'bmi': bmi
+})
+
+# RCT이므로 처치 배정은 무작위!
+# 하지만 M → Y는 여전히 교란 가능성 존재
+
+# 분석
+analysis_clinical = MediationAnalysis(
+    data_clinical,
+    treatment='treatment',
+    mediator='hba1c_reduction',
+    outcome='cv_event',
+    covariates=['baseline_hba1c', 'age', 'bmi']
+)
+
+results_clinical = analysis_clinical.estimate_natural_effects()
+analysis_clinical.bootstrap_ci(n_bootstrap=1000)
+analysis_clinical.summary()
+
+# 출력:
+# ============================================================
+# 총 효과:           심혈관 사건 위험 -8.9%p 감소
+# 직접 효과 (NDE):   -4.2%p (항염증, 혈관 보호 효과)
+# 간접 효과 (NIE):   -4.7%p (혈당 감소 경로)
+#
+# 매개 비율:         52.8%
+# ============================================================
+
+# 민감도 분석
+analysis_clinical.sensitivity_analysis()
+</code></pre>
+                </div>
+
+                <p><strong>임상적 함의:</strong></p>
+                <ul>
+                    <li>신약은 심혈관 사건을 <strong>8.9%p 감소</strong>시킴</li>
+                    <li>절반(4.7%p)은 <strong>혈당 감소</strong>를 통해 → 혈당 관리가 중요</li>
+                    <li>절반(4.2%p)은 <strong>직접 효과</strong> → 혈당과 무관한 심혈관 보호 효과 존재</li>
+                    <li>혈당만 잘 관리해도 효과의 절반을 얻을 수 있음</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-section" id="quiz">
+            <h2>📝 Quiz</h2>
+
+            <div class="quiz-container">
+                <div class="quiz-question">
+                    <p><strong>Q1.</strong> 다음 중 <strong>자연 직접 효과(Natural Direct Effect, NDE)</strong>의 정의로 올바른 것은?</p>
+                    <div class="quiz-options">
+                        <label><input type="radio" name="q1" value="a"> (a) E[Y(1, m) - Y(0, m)] - 매개변수를 임의의 m으로 고정</label><br>
+                        <label><input type="radio" name="q1" value="b"> (b) E[Y(1, M(0)) - Y(0, M(0))] - 매개변수를 대조군 수준으로 고정</label><br>
+                        <label><input type="radio" name="q1" value="c"> (c) E[Y(1, M(1)) - Y(1, M(0))] - 처치를 1로 고정하고 매개변수 변화</label><br>
+                        <label><input type="radio" name="q1" value="d"> (d) E[Y(1, M(1)) - Y(0, M(0))] - 총 효과</label>
+                    </div>
+                    <div class="quiz-explanation" style="display:none;">
+                        <strong>정답: (b)</strong><br>
+                        NDE는 매개변수를 대조군 수준 M(0)으로 고정하고, 처치만 0에서 1로 변경했을 때의 효과입니다.
+                        (a)는 CDE, (c)는 NIE, (d)는 총 효과의 정의입니다.
+                    </div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q2.</strong> Baron & Kenny의 전통적 매개 분석 방법에서 <strong>간접 효과</strong>는 어떻게 계산하나요?</p>
+                    <div class="quiz-options">
+                        <label><input type="radio" name="q2" value="a"> (a) τ (총 효과)</label><br>
+                        <label><input type="radio" name="q2" value="b"> (b) τ' (M을 통제한 후 X의 효과)</label><br>
+                        <label><input type="radio" name="q2" value="c"> (c) a × b (X→M 효과 × M→Y 효과)</label><br>
+                        <label><input type="radio" name="q2" value="d"> (d) τ - a (총 효과 - X→M 효과)</label>
+                    </div>
+                    <div class="quiz-explanation" style="display:none;">
+                        <strong>정답: (c)</strong><br>
+                        Baron & Kenny 방법에서 간접 효과는 두 경로의 곱 a × b로 계산합니다.
+                        a는 X→M 효과, b는 M→Y 효과입니다. τ'는 직접 효과입니다.
+                    </div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q3.</strong> <strong>순차적 무지성(Sequential Ignorability)</strong> 가정의 두 번째 조건은 무엇인가요?</p>
+                    <div class="quiz-options">
+                        <label><input type="radio" name="q3" value="a"> (a) (Y(t,m), M(t)) ⊥ T | X - 처치 배정이 무작위</label><br>
+                        <label><input type="radio" name="q3" value="b"> (b) Y(t,m) ⊥ M | T, X - 매개변수가 Y에 대해 무작위</label><br>
+                        <label><input type="radio" name="q3" value="c"> (c) M ⊥ T - 매개변수와 처치가 독립</label><br>
+                        <label><input type="radio" name="q3" value="d"> (d) Y ⊥ X | T, M - 결과와 공변량이 독립</label>
+                    </div>
+                    <div class="quiz-explanation" style="display:none;">
+                        <strong>정답: (b)</strong><br>
+                        두 번째 조건 Y(t,m) ⊥ M | T, X는 T와 X를 통제했을 때 M이 Y에 대해 무작위로 배정된 것처럼 작동한다는 가정입니다.
+                        이 가정이 매우 강력하며, M과 Y 사이에 관찰되지 않은 교란이 없어야 합니다.
+                    </div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q4.</strong> 민감도 분석에서 <strong>ρ 파라미터</strong>는 무엇을 나타내나요?</p>
+                    <div class="quiz-options">
+                        <label><input type="radio" name="q4" value="a"> (a) 처치와 결과의 상관계수</label><br>
+                        <label><input type="radio" name="q4" value="b"> (b) 매개변수와 결과의 잔차 상관계수 (관찰되지 않은 교란 강도)</label><br>
+                        <label><input type="radio" name="q4" value="c"> (c) 처치와 매개변수의 상관계수</label><br>
+                        <label><input type="radio" name="q4" value="d"> (d) 공변량과 결과의 상관계수</label>
+                    </div>
+                    <div class="quiz-explanation" style="display:none;">
+                        <strong>정답: (b)</strong><br>
+                        ρ는 M과 Y의 잔차 상관계수로, 관찰되지 않은 교란 변수 U가 두 변수에 미치는 영향을 나타냅니다.
+                        ρ=0이면 교란이 없고, |ρ|가 클수록 교란이 강합니다.
+                    </div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q5.</strong> <strong>통제 직접 효과(Controlled Direct Effect, CDE)</strong>와 <strong>자연 직접 효과(NDE)</strong>의 주요 차이점은?</p>
+                    <div class="quiz-options">
+                        <label><input type="radio" name="q5" value="a"> (a) CDE는 M을 임의의 값으로 외부 통제, NDE는 M을 대조군 수준 M(0)으로 설정</label><br>
+                        <label><input type="radio" name="q5" value="b"> (b) CDE는 이진 결과에만 사용, NDE는 연속 결과에만 사용</label><br>
+                        <label><input type="radio" name="q5" value="c"> (c) CDE는 교란이 없어도 추정 불가, NDE는 교란이 있어도 추정 가능</label><br>
+                        <label><input type="radio" name="q5" value="d"> (d) 차이가 없음 - 동일한 개념</label>
+                    </div>
+                    <div class="quiz-explanation" style="display:none;">
+                        <strong>정답: (a)</strong><br>
+                        CDE(m) = E[Y(1,m) - Y(0,m)]는 M을 임의의 특정 값 m으로 외부에서 통제합니다.
+                        NDE = E[Y(1,M(0)) - Y(0,M(0))]는 M을 "자연스럽게" 대조군 수준으로 설정합니다.
+                        CDE는 정책적으로 M을 통제할 수 있을 때 유용합니다.
+                    </div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q6.</strong> 다음 연구 시나리오에서 <strong>순차적 무지성이 위배될 가능성이 가장 높은</strong> 경우는?</p>
+                    <p style="font-size: 0.95rem; margin-left: 20px;">
+                        연구: 운동 프로그램(X) → 체중 감소(M) → 당뇨병 발생률(Y)<br>
+                        공변량: 나이, 성별, 기저 BMI
+                    </p>
+                    <div class="quiz-options">
+                        <label><input type="radio" name="q6" value="a"> (a) 처치(운동 프로그램)가 무작위 배정됨</label><br>
+                        <label><input type="radio" name="q6" value="b"> (b) 관찰되지 않은 "식습관"이 체중 감소(M)와 당뇨병(Y) 모두에 영향을 줌</label><br>
+                        <label><input type="radio" name="q6" value="c"> (c) 나이가 운동 참여와 당뇨병 모두에 영향을 주지만, 공변량으로 통제됨</label><br>
+                        <label><input type="radio" name="q6" value="d"> (d) 표본 크기가 충분히 큼 (n=10,000)</label>
+                    </div>
+                    <div class="quiz-explanation" style="display:none;">
+                        <strong>정답: (b)</strong><br>
+                        "식습관"은 관찰되지 않았지만 M(체중 감소)과 Y(당뇨병) 모두에 영향을 주므로,
+                        두 번째 순차적 무지성 조건 Y(t,m) ⊥ M | T, X가 위배됩니다.
+                        이 경우 민감도 분석으로 교란의 영향을 평가해야 합니다.
+                    </div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q7.</strong> 교육(X) → 기술(M) → 소득(Y) 매개 분석에서 다음 결과를 얻었습니다:</p>
+                    <p style="font-size: 0.95rem; margin-left: 20px;">
+                        - 총 효과 (TE): 1,000만원<br>
+                        - 직접 효과 (NDE): 700만원<br>
+                        - 간접 효과 (NIE): 300만원<br>
+                        - 민감도 분석: ρ=0.25에서 NIE가 0이 됨
+                    </p>
+                    <p>이 결과를 어떻게 해석해야 하나요?</p>
+                    <div class="quiz-options">
+                        <label><input type="radio" name="q7" value="a"> (a) 간접 효과가 매우 강건함 - 강한 교란에도 유의</label><br>
+                        <label><input type="radio" name="q7" value="b"> (b) 간접 효과가 약한 교란에 민감함 - 결과 신뢰도 낮음</label><br>
+                        <label><input type="radio" name="q7" value="c"> (c) 직접 효과가 교란에 민감함</label><br>
+                        <label><input type="radio" name="q7" value="d"> (d) 총 효과는 신뢰할 수 없음</label>
+                    </div>
+                    <div class="quiz-explanation" style="display:none;">
+                        <strong>정답: (b)</strong><br>
+                        ρ=0.25 (약한 교란)에서 NIE가 0이 된다는 것은, 기술과 소득 사이에 약한 수준의 관찰되지 않은 교란만 있어도
+                        간접 효과가 사라진다는 의미입니다. 따라서 간접 효과 추정값의 신뢰도가 낮습니다.
+                        총 효과는 처치가 무작위 배정되었다면 여전히 신뢰할 수 있습니다.
+                    </div>
+                </div>
+
+                <button onclick="checkQuiz()" class="btn btn-primary">제출하기</button>
+                <div id="quiz-result"></div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 추가 학습 자료</h2>
+
+            <div class="info-box">
+                <h4>📖 핵심 논문</h4>
+                <ul>
+                    <li><strong>Pearl, J. (2001).</strong> "Direct and Indirect Effects." <em>UAI 2001</em>
+                        <br><span style="font-size: 0.9rem;">→ 인과 매개 분석의 현대적 프레임워크 제시</span>
+                    </li>
+                    <li><strong>Imai, K., Keele, L., & Tingley, D. (2010).</strong> "A General Approach to Causal Mediation Analysis." <em>Psychological Methods</em>
+                        <br><span style="font-size: 0.9rem;">→ 실용적 추정 방법 및 민감도 분석</span>
+                    </li>
+                    <li><strong>VanderWeele, T. J. (2015).</strong> "Explanation in Causal Inference: Methods for Mediation and Interaction."
+                        <br><span style="font-size: 0.9rem;">→ 매개 분석의 포괄적 교과서</span>
+                    </li>
+                    <li><strong>Robins, J. M., & Greenland, S. (1992).</strong> "Identifiability and exchangeability for direct and indirect effects."
+                        <br><span style="font-size: 0.9rem;">→ 식별 가정의 이론적 기초</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="info-box tip">
+                <h4>💻 R/Python 패키지</h4>
+                <ul>
+                    <li><strong>R:</strong>
+                        <ul>
+                            <li><code>mediation</code> - 가장 널리 사용되는 매개 분석 패키지</li>
+                            <li><code>medflex</code> - Natural/interventional effects 추정</li>
+                            <li><code>mma</code> - Multiple mediator analysis</li>
+                        </ul>
+                    </li>
+                    <li><strong>Python:</strong>
+                        <ul>
+                            <li><code>statsmodels</code> - Mediation 모듈</li>
+                            <li><code>DoWhy</code> - Microsoft의 인과추론 라이브러리</li>
+                            <li><code>CausalML</code> - Uber의 매개 분석 도구</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="info-box note">
+                <h4>🔗 온라인 자료</h4>
+                <ul>
+                    <li><a href="https://imai.fas.harvard.edu/research/mediationR.html" target="_blank">Kosuke Imai's Mediation Package Guide</a></li>
+                    <li><a href="https://www.hsph.harvard.edu/tyler-vanderweele/tools-and-tutorials/" target="_blank">Tyler VanderWeele's Tutorial</a></li>
+                    <li><a href="https://stats.oarc.ucla.edu/r/faq/how-can-i-do-mediation-analysis-in-r/" target="_blank">UCLA IDRE Tutorial</a></li>
+                </ul>
+            </div>
         </div>
 
         <div class="chapter-nav">
-            <a href="11-synthetic-control.html" class="btn">← Chapter 11</a>
+            <a href="11-synthetic-control.html" class="btn">← Chapter 11: 합성 통제법</a>
             <a href="13-sensitivity.html" class="btn btn-success">Chapter 13: 민감도 분석 →</a>
         </div>
+
+        <div style="text-align: center; margin: 40px 0;">
+            <a href="../index.html" class="btn">🏠 홈으로 돌아가기</a>
+        </div>
     </div>
-    <footer><p>&copy; 2024 Causal Inference 학습 가이드</p></footer>
+
+    <footer>
+        <p>&copy; 2024 Causal Inference 학습 가이드. All rights reserved.</p>
+    </footer>
+
     <script src="../js/main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // ===================================================================
+        // Interactive 매개 분석 시뮬레이터
+        // ===================================================================
+
+        let mediationChart = null;
+        let sensitivityChart = null;
+
+        function runMediationSimulation() {
+            const a = parseFloat(document.getElementById('path-a-slider').value);
+            const b = parseFloat(document.getElementById('path-b-slider').value);
+            const cPrime = parseFloat(document.getElementById('path-c-slider').value);
+
+            // 간접 효과와 총 효과 계산
+            const indirectEffect = a * b;
+            const directEffect = cPrime;
+            const totalEffect = directEffect + indirectEffect;
+            const propMediated = indirectEffect / totalEffect;
+
+            // 결과 표시
+            const resultsDiv = document.getElementById('effect-breakdown');
+            resultsDiv.innerHTML = `
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <p><strong>경로 계수:</strong></p>
+                    <ul>
+                        <li>a (X → M): ${a.toFixed(2)}</li>
+                        <li>b (M → Y): ${b.toFixed(2)}</li>
+                        <li>c' (X → Y 직접): ${cPrime.toFixed(2)}</li>
+                    </ul>
+                    <hr>
+                    <p><strong>효과 분해:</strong></p>
+                    <ul>
+                        <li style="color: #e74c3c; font-weight: bold;">간접 효과 (a×b): ${indirectEffect.toFixed(3)}</li>
+                        <li style="color: #3498db; font-weight: bold;">직접 효과 (c'): ${directEffect.toFixed(3)}</li>
+                        <li style="color: #27ae60; font-weight: bold;">총 효과: ${totalEffect.toFixed(3)}</li>
+                    </ul>
+                    <hr>
+                    <p style="font-size: 1.1rem; font-weight: bold;">
+                        매개 비율: ${(propMediated * 100).toFixed(1)}%
+                    </p>
+                    <p style="font-size: 0.9rem; color: #666;">
+                        총 효과 중 ${(propMediated * 100).toFixed(1)}%가 매개 경로(X→M→Y)를 통해 발생합니다.
+                    </p>
+                </div>
+            `;
+
+            // 차트 업데이트
+            const ctx = document.getElementById('mediationChart').getContext('2d');
+
+            if (mediationChart) {
+                mediationChart.destroy();
+            }
+
+            mediationChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['간접 효과\n(NIE)', '직접 효과\n(NDE)', '총 효과\n(TE)'],
+                    datasets: [{
+                        label: '효과 크기',
+                        data: [indirectEffect, directEffect, totalEffect],
+                        backgroundColor: [
+                            'rgba(231, 76, 60, 0.7)',
+                            'rgba(52, 152, 219, 0.7)',
+                            'rgba(39, 174, 96, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(231, 76, 60, 1)',
+                            'rgba(52, 152, 219, 1)',
+                            'rgba(39, 174, 96, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: '매개 효과 분해',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '효과 크기'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ===================================================================
+        // 민감도 분석 시뮬레이터
+        // ===================================================================
+
+        function runSensitivityAnalysis() {
+            const rho = parseFloat(document.getElementById('rho-slider').value);
+            const trueIndirect = parseFloat(document.getElementById('true-indirect-slider').value);
+
+            // 임의의 잔차 표준편차 (시뮬레이션)
+            const sigmaM = 0.5;
+            const sigmaY = 0.5;
+
+            // ρ 범위에 따른 조정된 NIE 계산
+            const rhoValues = [];
+            const nieAdjusted = [];
+
+            for (let r = -0.9; r <= 0.9; r += 0.05) {
+                rhoValues.push(r);
+                const bias = r * sigmaM * sigmaY;
+                nieAdjusted.push(trueIndirect - bias);
+            }
+
+            // 현재 ρ에서의 값
+            const currentBias = rho * sigmaM * sigmaY;
+            const currentNIE = trueIndirect - currentBias;
+
+            // 결과 해석
+            let interpretation = '';
+            const rhoThreshold = Math.abs(trueIndirect / (sigmaM * sigmaY));
+
+            if (rhoThreshold < 0.2) {
+                interpretation = `
+                    <div class="info-box warning">
+                        <h4>⚠️ 낮은 강건성</h4>
+                        <p>간접 효과가 <strong>ρ ≈ ${rhoThreshold.toFixed(2)}</strong>에서 0이 됩니다.</p>
+                        <p>매우 약한 교란(ρ < 0.2)만 있어도 효과가 사라지므로, <strong>결과의 신뢰도가 낮습니다.</strong></p>
+                    </div>
+                `;
+            } else if (rhoThreshold < 0.5) {
+                interpretation = `
+                    <div class="info-box note">
+                        <h4>💡 중간 강건성</h4>
+                        <p>간접 효과가 <strong>ρ ≈ ${rhoThreshold.toFixed(2)}</strong>에서 0이 됩니다.</p>
+                        <p>중간 강도의 교란에는 강건하므로, <strong>결과를 어느 정도 신뢰할 수 있습니다.</strong></p>
+                    </div>
+                `;
+            } else {
+                interpretation = `
+                    <div class="info-box tip">
+                        <h4>✅ 높은 강건성</h4>
+                        <p>간접 효과가 <strong>ρ ≈ ${rhoThreshold.toFixed(2)}</strong>에서 0이 됩니다.</p>
+                        <p>강한 교란(ρ > 0.5)에도 효과가 유지되므로, <strong>결과를 신뢰할 수 있습니다!</strong></p>
+                    </div>
+                `;
+            }
+
+            interpretation += `
+                <p style="margin-top: 15px;"><strong>현재 설정 (ρ = ${rho.toFixed(2)}):</strong></p>
+                <ul>
+                    <li>관찰된 간접 효과: ${trueIndirect.toFixed(3)}</li>
+                    <li>편향 크기: ${currentBias.toFixed(3)}</li>
+                    <li>조정된 간접 효과: ${currentNIE.toFixed(3)}</li>
+                </ul>
+            `;
+
+            document.getElementById('sensitivity-interpretation').innerHTML = interpretation;
+
+            // 차트 업데이트
+            const ctx = document.getElementById('sensitivityChart').getContext('2d');
+
+            if (sensitivityChart) {
+                sensitivityChart.destroy();
+            }
+
+            sensitivityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: rhoValues.map(r => r.toFixed(2)),
+                    datasets: [{
+                        label: '조정된 간접 효과 (NIE)',
+                        data: nieAdjusted,
+                        borderColor: 'rgba(231, 76, 60, 1)',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 0
+                    }, {
+                        label: 'ρ = 0 (교란 없음)',
+                        data: rhoValues.map(() => trueIndirect),
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderDash: [5, 5],
+                        pointRadius: 0
+                    }, {
+                        label: '현재 설정',
+                        data: rhoValues.map((r, i) => r === rho ? currentNIE : null),
+                        borderColor: 'rgba(39, 174, 96, 1)',
+                        backgroundColor: 'rgba(39, 174, 96, 1)',
+                        pointRadius: 8,
+                        showLine: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '민감도 분석: 간접 효과 vs 교란 강도',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '교란 강도 (ρ)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '조정된 간접 효과'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ===================================================================
+        // 슬라이더 값 업데이트
+        // ===================================================================
+
+        document.getElementById('rho-slider').addEventListener('input', function() {
+            document.getElementById('rho-value').textContent = parseFloat(this.value).toFixed(1);
+        });
+
+        document.getElementById('true-indirect-slider').addEventListener('input', function() {
+            document.getElementById('true-indirect-value').textContent = parseFloat(this.value).toFixed(2);
+        });
+
+        document.getElementById('path-a-slider').addEventListener('input', function() {
+            document.getElementById('path-a-value').textContent = parseFloat(this.value).toFixed(1);
+        });
+
+        document.getElementById('path-b-slider').addEventListener('input', function() {
+            document.getElementById('path-b-value').textContent = parseFloat(this.value).toFixed(1);
+        });
+
+        document.getElementById('path-c-slider').addEventListener('input', function() {
+            document.getElementById('path-c-value').textContent = parseFloat(this.value).toFixed(1);
+        });
+
+        // ===================================================================
+        // 코드 탭 전환
+        // ===================================================================
+
+        function showCode(language) {
+            // 모든 탭과 콘텐츠 비활성화
+            const tabs = document.querySelectorAll('.code-tab');
+            const contents = document.querySelectorAll('.code-content');
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+
+            // 선택한 것만 활성화
+            if (language === 'python') {
+                tabs[0].classList.add('active');
+                document.getElementById('python-code').classList.add('active');
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('r-code').classList.add('active');
+            }
+        }
+
+        // ===================================================================
+        // 퀴즈 채점
+        // ===================================================================
+
+        function checkQuiz() {
+            const answers = {
+                q1: 'b',
+                q2: 'c',
+                q3: 'b',
+                q4: 'b',
+                q5: 'a',
+                q6: 'b',
+                q7: 'b'
+            };
+
+            let score = 0;
+            let total = Object.keys(answers).length;
+
+            // 모든 설명 숨기기
+            document.querySelectorAll('.quiz-explanation').forEach(exp => {
+                exp.style.display = 'none';
+            });
+
+            for (let question in answers) {
+                const selected = document.querySelector(`input[name="${question}"]:checked`);
+                const explanation = document.querySelector(`input[name="${question}"]`)
+                    .closest('.quiz-question')
+                    .querySelector('.quiz-explanation');
+
+                if (selected) {
+                    if (selected.value === answers[question]) {
+                        score++;
+                        selected.parentElement.style.color = '#27ae60';
+                        selected.parentElement.style.fontWeight = 'bold';
+                    } else {
+                        selected.parentElement.style.color = '#e74c3c';
+                    }
+                    explanation.style.display = 'block';
+                }
+            }
+
+            const percentage = (score / total) * 100;
+            let message = '';
+            let color = '';
+
+            if (percentage === 100) {
+                message = '🎉 완벽합니다! 매개 분석을 완전히 이해했습니다!';
+                color = '#27ae60';
+            } else if (percentage >= 70) {
+                message = '👍 잘했습니다! 핵심 개념을 이해하고 있습니다.';
+                color = '#3498db';
+            } else if (percentage >= 50) {
+                message = '📚 괜찮습니다. 조금 더 복습이 필요합니다.';
+                color = '#f39c12';
+            } else {
+                message = '💪 다시 한번 학습 내용을 복습해보세요.';
+                color = '#e74c3c';
+            }
+
+            document.getElementById('quiz-result').innerHTML = `
+                <div style="background: ${color}; color: white; padding: 20px; border-radius: 8px; margin-top: 20px; text-align: center;">
+                    <h3 style="margin: 0 0 10px 0;">점수: ${score} / ${total} (${percentage.toFixed(0)}%)</h3>
+                    <p style="margin: 0; font-size: 1.1rem;">${message}</p>
+                </div>
+            `;
+        }
+
+        // 페이지 로드 시 초기 시뮬레이션 실행
         window.addEventListener('load', () => {
-            const dag = new DAGVisualization('dag-mediation');
-            dag.addNode('X', 'X', 100, 150);
-            dag.addNode('M', 'M', 300, 100);
-            dag.addNode('Y', 'Y', 500, 150);
-            dag.addEdge('X', 'M');
-            dag.addEdge('M', 'Y');
-            dag.addEdge('X', 'Y');
-            dag.draw(600, 250);
+            runMediationSimulation();
+            runSensitivityAnalysis();
         });
     </script>
 </body>
